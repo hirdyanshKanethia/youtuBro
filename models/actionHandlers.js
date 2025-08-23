@@ -1,4 +1,4 @@
-// backend/src/models/actionHandlers.js
+// backend/models/actionHandlers.js
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -18,11 +18,11 @@ class ActionHandlers {
     - content_creator: The main creator that the user mentioned, if any (e.g., artist, teacher, streamer, celebrity), or null.
     - description: A short natural-language description of the playlist (max 30 words), or null.
     - privacy: "public" or "private". Default to "private" if not specified.
-    - vid_count: An integer. If the user specifies a number, use it. If they use vague terms ("few", "many"), interpret reasonably (e.g., few=5, several=10, a lot=20).
+    - vid_count: An integer. If the user specifies a number, use it. If they use vague terms ("few", "many"), interpret reasonably (e.g., few=5, several=10, a lot=20). Set null only and only if a roadmap is needed. Default = 15
     - need_roadmap: answer in yes or no if the requirement of the user needs a roadmap in order to make a playlist (Ex- To learn a topic, we need a roadmap)
 
     Decision:
-    - ready_to_execute: true if enough information is present to reasonably create a playlist (at least playlist_name OR description, and content_type), else false.
+    - ready_to_execute: true if enough information is present to reasonably create a playlist (at least playlist_name OR description, and content_type), else false if no to very little information is present.
 
     User message: """${userPrompt}"""
 
@@ -52,8 +52,7 @@ class ActionHandlers {
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      parsed.userPrompt = userPrompt
-      console.log(parsed)
+      parsed.userPrompt = userPrompt;
 
       // Handle case where ready_to_execute is false
       if (!parsed.ready_to_execute) {
@@ -82,44 +81,77 @@ class ActionHandlers {
     }
   }
 
-  async handleRemovePlaylist(userPrompt) {
+  /**
+   * Simplified handler to identify a playlist for removal in a single step.
+   * @param {string} userPrompt - The user's natural language request.
+   * @param {Array<Object>} userPlaylists - An array of the user's playlists.
+   * @returns {Promise<Object>}
+   */
+  async handleRemovePlaylist(userPrompt, userPlaylists) {
+    if (!userPlaylists || userPlaylists.length === 0) {
+      return {
+        success: false,
+        ready_to_execute: false,
+        message: "You don't have any playlists to delete.",
+      };
+    }
+
     const prompt = `
-You are a playlist removal assistant. Extract the required parameters from the user's message.
+    You are an intelligent playlist deletion assistant. Your job is to accurately identify which of the user's playlists they want to delete based on their message and a provided list.
 
-Required parameters:
-- playlist_identifier: The playlist name or ID to remove
+    CONTEXT:
+    The user has the following playlists. Your decision MUST be one of these playlists.
+    Playlists List:
+    ${JSON.stringify(userPlaylists, null, 2)}
 
-Optional parameters:
-- confirmation: Boolean indicating if user confirmed deletion
+    USER MESSAGE:
+    """${userPrompt}"""
 
-User message: "${userPrompt}"
+    YOUR TASK:
+    1.  Analyze the user's message and identify the single playlist they want to delete from the 'Playlists List'.
+    2.  If you can confidently identify a playlist, extract its "id" and "name".
+    3.  If the request is ambiguous or you cannot find a match, return null for the playlist.
 
-Respond with JSON in this format:
-{
-  "parameters": {
-    "playlist_identifier": "extracted playlist name/id or null",
-    "confirmation": boolean or null
-  },
-  "missing_required": ["list of missing required parameters"],
-  "ready_to_execute": boolean,
-  "follow_up_question": "question to ask user if parameters are missing"
-}
-`;
+    DECISION:
+    - ready_to_execute: Set to true ONLY if you successfully identified a playlist to delete, otherwise false.
+
+    Respond ONLY with valid JSON in the following format:
+    {
+      "parameters": {
+        "playlist_to_delete": {
+          "id": "string, from the list provided",
+          "name": "string, from the list provided"
+        } or null
+      },
+      "ready_to_execute": boolean
+    }
+    `;
 
     try {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      let text = response.text();
+      let text = response.text().replace(/```json\n|\n```/g, "");
+      const parsed = JSON.parse(text);
 
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
+      // Post-processing to align with the rest of the application
+      if (!parsed.ready_to_execute || !parsed.parameters.playlist_to_delete) {
+        return {
+          success: false,
+          ready_to_execute: false,
+          message:
+            "Sorry, I couldn't figure out which playlist you want to delete. Please be more specific.",
+          parameters: parsed.parameters,
+        };
       }
 
-      return JSON.parse(jsonMatch[0]);
+      return {
+        success: true,
+        ...parsed,
+      };
     } catch (error) {
       console.error("Remove playlist handler error:", error);
       return {
+        success: false,
         error: error.message,
         ready_to_execute: false,
       };

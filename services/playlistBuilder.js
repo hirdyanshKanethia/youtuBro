@@ -1,82 +1,202 @@
-// playlistBuilder.js
+// backend/services/playlistBuilder.js
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const YouTubeService = require('./youtubeService');
 
 class PlaylistBuilder {
-  constructor(geminiApiKey, youtubeApiKey) {
+  constructor(geminiApiKey, youtubeService) {
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     this.model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    this.youtubeService = new YouTubeService(youtubeApiKey);
+    this.youtubeService = youtubeService;
+  }
+  /**
+   * Main execute method that acts as a dispatcher based on the 'need_roadmap' parameter.
+   */
+  async execute(playlistData) {
+    if (!playlistData.success || !playlistData.ready_to_execute) {
+      throw new Error("Cannot execute playlist creation. Data is not ready.");
+    }
+
+    const params = playlistData.parameters;
+
+    if (params.need_roadmap === "yes") {
+      console.log("Starting roadmap-based playlist creation...");
+      return this._executeRoadmapPlaylist(playlistData);
+    } else {
+      console.log("Starting simple playlist creation...");
+      return this._executeSimplePlaylist(playlistData);
+    }
+  }
+
+  // --- Roadmap Playlist Methods ---
+
+  /**
+   * Orchestrates the creation of a playlist based on a generated roadmap.
+   * @private
+   */
+  async _executeRoadmapPlaylist(playlistData) {
+    const params = playlistData.parameters;
+
+    // 1. Generate the roadmap and a specific query for each step
+    const roadmapResult = await this._generateRoadmapAndQueries(params);
+    if (!roadmapResult || roadmapResult.roadmap.length === 0) {
+      return {
+        success: false,
+        message: "Could not generate a learning roadmap.",
+      };
+    }
+
+    const queries = roadmapResult.roadmap.map((step) => step.query);
+
+    // 2. Create the empty playlist on YouTube
+    // We can format the roadmap as the playlist description for a nice touch.
+    const playlistDescription = roadmapResult.roadmap
+      .map((step) => `${step.step}. ${step.title}`)
+      .join("\n");
+
+    const newPlaylist = await this.youtubeService.createPlaylist(
+      params.playlist_name,
+      playlistDescription,
+      params.privacy
+    );
+    if (!newPlaylist || !newPlaylist.id) {
+      return { success: false, message: "Failed to create YouTube playlist." };
+    }
+
+    // 3. Search for ONE video for each query
+    console.log(
+      `Searching for ${queries.length} specific videos for the roadmap...`
+    );
+    const videoIdPromises = queries.map((q) =>
+      this.youtubeService.searchForVideoId(q)
+    );
+    const videoIds = (await Promise.all(videoIdPromises)).filter(
+      (id) => id !== null
+    );
+
+    if (videoIds.length === 0) {
+      return {
+        success: false,
+        message: "Could not find any videos for the roadmap topics.",
+        playlistUrl: newPlaylist.url,
+      };
+    }
+
+    // 4. Add the collected videos to the new playlist
+    await this.youtubeService.addVideosToPlaylist(newPlaylist.id, videoIds);
+
+    console.log("Roadmap playlist creation completed!");
+
+    const action_message = `Agent action: Created new roadmap-based playlist named "${params.playlist_name}" and added ${videoIds.length} videos. URL: ${newPlaylist.url}.`;
+
+    return {
+      success: true,
+      message: `Successfully created playlist and added ${videoIds.length} videos based on the generated roadmap.`,
+      playlistUrl: newPlaylist.url,
+      action_message: action_message,
+    };
   }
 
   /**
-   * Uses Gemini to generate a list of YouTube search queries.
-   * @param {object} playlistParams - The parameters object from your handleMakePlaylist function.
-   * @returns {Promise<string[]>} An array of search query strings.
+   * Uses Gemini to generate a curriculum/roadmap and corresponding search queries.
+   * @private
    */
-  async generateSearchQueries(playlistParams) {
-    const { content_creator, description, content_type, vid_count } = playlistParams;
+  async _generateRoadmapAndQueries(playlistParams) {
+    const { playlist_name, description } = playlistParams; // vid_count is no longer needed here
 
     const prompt = `
-      You are a YouTube search query expert. Your task is to generate a list of YouTube search queries to find videos for a playlist based on the following parameters.
+      You are an expert curriculum and content strategist. Your task is to create a step-by-step learning roadmap for the given topic. For each step, you must also generate a concise, high-quality YouTube search query that would find a good introductory video for that topic.
+
+      Playlist Parameters:
+      - Topic / Name: "${playlist_name}"
+      - Description: "${description}"
+
+      Instructions:
+      1. Create a logical, step-by-step learning roadmap.
+      2. The number of steps should be comprehensive yet concise, covering the essential stages of learning the topic. A reasonable number is typically between 5 and 15 steps, but you should use your expert judgment.
+      3. For each step, provide a clear "title" and a specific YouTube "query".
+      4. The "query" should be optimized to find the best possible educational video for that step.
+      5. Respond ONLY with a valid JSON object in the specified format.
+
+      Example Response Format:
+      {
+        "roadmap": [
+          { "step": 1, "title": "Introduction to Quantum Physics", "query": "quantum physics for beginners simplified" },
+          { "step": 2, "title": "Wave-Particle Duality", "query": "wave-particle duality explained double slit experiment" }
+        ]
+      }
+    `;
+
+    try {
+      console.log("Generating dynamic roadmap and queries...");
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      let text = response.text().replace(/```json\n|\n```/g, "");
+      return JSON.parse(text);
+    } catch (error) {
+      console.error("Error generating roadmap:", error);
+      return null;
+    }
+  }
+
+
+  /**
+   * UPDATED METHOD: Uses Gemini to generate a single, optimal search query.
+   * @param {object} playlistParams
+   * @returns {Promise<string>} A single search query string.
+   */
+  async _generateSingleSearchQuery(playlistParams) {
+    const { content_creator, description, content_type } = playlistParams;
+
+    const prompt = `
+      You are a YouTube search query expert. Your task is to generate the single best search query to find a variety of videos for a playlist based on the following parameters.
 
       Playlist Parameters:
       - Content Type: "${content_type}"
       - Creator / Artist: "${content_creator}"
       - Description: "${description}"
-      - Number of videos required: ${vid_count}
 
       Instructions:
-      1. Generate exactly ${vid_count} distinct search queries.
-      2. The queries should be diverse to find a good mix of relevant videos. For music, include specific song titles, "live performance", "official video", and artist collaborations. For educational content, include different sub-topics.
-      3. Focus on creating queries that would yield high-quality, popular results on YouTube.
-      4. Respond ONLY with a valid JSON array of strings, with no extra text or explanations.
+      1. Analyze the parameters to create one single, effective search query.
+      2. The query should be broad enough to find multiple relevant videos but specific enough to be accurate. For music, focus on the artist and genre. For topics, focus on the core subject.
+      3. Respond ONLY with a valid JSON string, with no extra text or explanations.
 
       Example Response Format:
-      [
-        "query 1",
-        "query 2",
-        "query 3"
-      ]
+      "best search query goes here"
     `;
 
     try {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
-      
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        throw new Error("Could not parse search queries from LLM response.");
-      }
-      
-      const queries = JSON.parse(jsonMatch[0]);
-      console.log(`Generated ${queries.length} search queries.`);
-      return queries;
+      let text = response.text();
 
+      // Clean up potential markdown code fences
+      text = text.replace(/```json\n|\n```/g, "");
+
+      const query = JSON.parse(text);
+      console.log(`Generated single search query: "${query}"`);
+      return query;
     } catch (error) {
-      console.error("Error generating search queries:", error);
-      throw new Error("Failed to generate search queries.");
+      console.error("Error generating single search query:", error);
+      throw new Error("Failed to generate search query.");
     }
   }
 
   /**
-   * The main orchestrator method to create the full playlist.
-   * @param {object} playlistData - The full data object from your handleMakePlaylist function.
-   * @returns {Promise<object>} A promise that resolves to the final result.
+   * UPDATED METHOD: The main orchestrator method with the new, simpler logic.
+   * @param {object} playlistData
+   * @returns {Promise<object>}
    */
-  async execute(playlistData) {
+  async _executeSimplePlaylist(playlistData) {
     if (!playlistData.success || !playlistData.ready_to_execute) {
-        throw new Error("Cannot execute playlist creation. Data is not ready.");
+      throw new Error("Cannot execute playlist creation. Data is not ready.");
     }
 
     const params = playlistData.parameters;
-    console.log('Starting playlist creation process...');
+    console.log("Starting playlist creation process...");
 
-    // 1. Generate search queries using the LLM
-    const queries = await this.generateSearchQueries(params);
-    if (!queries || queries.length === 0) {
-        return { success: false, message: "Could not generate any search queries." };
+    // 1. Generate ONE search query using the LLM
+    const singleQuery = await this._generateSingleSearchQuery(params);
+    if (!singleQuery) {
+      return { success: false, message: "Could not generate a search query." };
     }
 
     // 2. Create the empty playlist on YouTube
@@ -86,25 +206,34 @@ class PlaylistBuilder {
       params.privacy
     );
     if (!newPlaylist || !newPlaylist.id) {
-        return { success: false, message: "Failed to create YouTube playlist." };
+      return { success: false, message: "Failed to create YouTube playlist." };
     }
 
-    // 3. Search for each video and collect their IDs
-    const videoIdPromises = queries.map(q => this.youtubeService.searchForVideoId(q));
-    const videoIds = (await Promise.all(videoIdPromises)).filter(id => id !== null); // Filter out any failed searches
-
+    // 3. Search for multiple videos using the single query
+    const videoIds = await this.youtubeService.searchForVideos(
+      singleQuery,
+      params.vid_count
+    );
     if (videoIds.length === 0) {
-        return { success: false, message: "Could not find any videos for the generated queries.", playlistUrl: newPlaylist.url };
+      return {
+        success: false,
+        message: "Could not find any videos for the generated query.",
+        playlistUrl: newPlaylist.url,
+      };
     }
-    
+
     // 4. Add the collected videos to the new playlist
     await this.youtubeService.addVideosToPlaylist(newPlaylist.id, videoIds);
 
-    console.log('Playlist creation process completed!');
+    console.log("Playlist creation process completed!");
+
+    const action_message = `Agent action: Created new YouTube playlist named "${params.playlist_name}" and added ${videoIds.length} videos. Playlist is available at ${newPlaylist.url}.`;
+
     return {
-        success: true,
-        message: `Successfully created playlist and added ${videoIds.length} videos.`,
-        playlistUrl: newPlaylist.url,
+      success: true,
+      message: `Successfully created playlist and added ${videoIds.length} videos.`,
+      playlistUrl: newPlaylist.url,
+      action_message: action_message,
     };
   }
 }
