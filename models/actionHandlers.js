@@ -209,6 +209,69 @@ Respond with JSON in this format:
       };
     }
   }
+
+  /**
+   * UPDATED: Extracts raw parameters for a video to be played.
+   * This function's only job is to understand the user's intent.
+   * @param {string} userPrompt - The user's natural language request.
+   * @returns {Promise<Object>}
+   */
+  async handlePlayVideo(userPrompt) {
+    const prompt = `
+    You are an expert at understanding user requests to watch YouTube videos. Your job is to extract raw, structured search parameters from the user's message. Do NOT create the final search query yourself.
+
+    Parameters to extract:
+    - topic: The main subject or title of the video (e.g., "latest iphone review", "how to cook pasta").
+    - creator: The specific channel or creator mentioned (e.g., "MKBHD", "Gordon Ramsay").
+    - genre: The genre of music or content if specified (e.g., "lofi", "jazz", "comedy special").
+    - video_length: Infer the desired video length. Can be "short" (under 4 min), "medium" (4-20 min), or "long" (over 20 min). Default to "any".
+
+    Decision:
+    - ready_to_execute: Should be true if you can extract at least a 'topic', 'creator', or 'genre'.
+
+    User message: """${userPrompt}"""
+
+    Respond ONLY with valid JSON in the following format:
+    {
+      "parameters": {
+        "topic": "string or null",
+        "creator": "string or null",
+        "genre": "string or null",
+        "video_length": "short" | "medium" | "long" | "any"
+      },
+      "ready_to_execute": boolean
+    }
+    `;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      let text = response.text().replace(/```json\n|\n```/g, "");
+      const parsed = JSON.parse(text);
+
+      if (!parsed.ready_to_execute) {
+        return {
+          success: false,
+          ready_to_execute: false,
+          message:
+            "I'm sorry, I couldn't understand what you want to watch. Could you be more specific?",
+          parameters: parsed.parameters,
+        };
+      }
+
+      return {
+        success: true,
+        ...parsed,
+      };
+    } catch (error) {
+      console.error("Play video handler error:", error);
+      return {
+        success: false,
+        error: error.message,
+        ready_to_execute: false,
+      };
+    }
+  }
 }
 
 module.exports = ActionHandlers;

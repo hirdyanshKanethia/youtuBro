@@ -137,7 +137,6 @@ class PlaylistBuilder {
     }
   }
 
-
   /**
    * UPDATED METHOD: Uses Gemini to generate a single, optimal search query.
    * @param {object} playlistParams
@@ -235,6 +234,49 @@ class PlaylistBuilder {
       playlistUrl: newPlaylist.url,
       action_message: action_message,
     };
+  }
+
+  /**
+   * NEW: Takes structured parameters and synthesizes them into an optimal search query.
+   * @param {object} videoParams - The parameters extracted by handlePlayVideo.
+   * @returns {Promise<string|null>} The final search query string.
+   */
+  async generateVideoSearchQuery(videoParams) {
+    const { topic, creator, genre } = videoParams;
+
+    const prompt = `
+      You are a YouTube search query synthesis expert. Your task is to take structured parameters and create the single best search query to find relevant videos.
+
+      Structured Parameters:
+      - Topic: "${topic || "not specified"}"
+      - Creator/Channel: "${creator || "not specified"}"
+      - Genre: "${genre || "not specified"}"
+
+      Instructions:
+      1. Combine the provided parameters into a single, effective search query.
+      2. Prioritize the most specific information. If a creator is mentioned, they should be prominent in the query.
+      3. If the parameters are vague, create a broader, more general query.
+      4. Respond ONLY with a valid JSON string containing the final query.
+
+      Example Input: { topic: "new song", creator: "Tame Impala" }
+      Example Response: "Tame Impala new song"
+
+      Example Input: { genre: "80s rock music" }
+      Example Response: "best 80s rock music"
+    `;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      let text = response.text().replace(/```json\n|\n```/g, "");
+      // The response is a JSON string, so it needs to be parsed
+      const query = JSON.parse(text);
+      console.log(`Synthesized search query: "${query}"`);
+      return query;
+    } catch (error) {
+      console.error("Error synthesizing search query:", error);
+      return null;
+    }
   }
 }
 

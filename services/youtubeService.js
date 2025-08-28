@@ -33,7 +33,7 @@ class YouTubeService {
         q: query,
         type: "video",
         // videoDuration: 'medium',
-        videoDefinition: 'high',
+        videoDefinition: "high",
         maxResults: count, // Fetch multiple results
       });
 
@@ -111,7 +111,7 @@ class YouTubeService {
         q: query,
         type: "video",
         // videoDuration: 'medium',
-        videoDefinition: 'high',
+        videoDefinition: "high",
         maxResults: 1,
       });
       const videoId = response.data.items?.[0]?.id?.videoId;
@@ -206,6 +206,35 @@ class YouTubeService {
         error.message
       );
       return { success: false, message: "Failed to delete playlist." };
+    }
+  }
+
+  /**
+   * NEW METHOD: Gets full details for a list of video IDs.
+   * @param {string[]} videoIds - An array of video IDs.
+   * @returns {Promise<Array<Object>>} An array of video detail objects.
+   */
+  async getVideoDetails(videoIds) {
+    if (!videoIds || videoIds.length === 0) {
+      return [];
+    }
+    try {
+      const response = await this.youtube.videos.list({
+        part: "snippet,contentDetails", // Requesting snippet (title, thumbnail) and contentDetails (duration)
+        id: videoIds.join(","), // Combine all IDs into a single, comma-separated string
+      });
+
+      // Map the API response to a cleaner format for your frontend
+      return response.data.items.map((item) => ({
+        id: item.id,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.default.url,
+        duration: item.contentDetails.duration, // e.g., "PT5M3S"
+        url: `https://www.youtube.com/watch?v=${item.id}`,
+      }));
+    } catch (error) {
+      console.error("[API ERROR] Failed to get video details:", error.message);
+      return []; // Return an empty array on failure
     }
   }
 }

@@ -41,11 +41,9 @@ router.post("/", authMiddleware, async (req, res) => {
 
     if (error || !tokens) {
       console.error("Supabase error (chat.js):", error);
-      return res
-        .status(401)
-        .json({
-          error: "Could not retrieve user tokens. Please re-authenticate.",
-        });
+      return res.status(401).json({
+        error: "Could not retrieve user tokens. Please re-authenticate.",
+      });
     }
 
     // 2. Create authenticated YouTube service for this specific user
@@ -66,13 +64,28 @@ router.post("/", authMiddleware, async (req, res) => {
         handlerResult = await actionHandlers.handleMakePlaylist(prompt);
         break;
 
-      case "remove_playlist":
-        // For removal, we must first fetch the user's playlists to provide context to the AI
+      case "remove_playlist": {
+        // Using block scope for clarity
         const userPlaylists = await youtubeService.getUsersPlaylists();
         handlerResult = await actionHandlers.handleRemovePlaylist(
           prompt,
           userPlaylists
         );
+        break;
+      }
+
+      // case "manage_playlist": {
+      //   // Add this case
+      //   const userPlaylists = await youtubeService.getUsersPlaylists();
+      //   handlerResult = await actionHandlers.handleManagePlaylist(
+      //     prompt,
+      //     userPlaylists
+      //   );
+      //   break;
+      // }
+
+      case "play_video": // And this case
+        handlerResult = await actionHandlers.handlePlayVideo(prompt);
         break;
 
       default:
@@ -87,7 +100,11 @@ router.post("/", authMiddleware, async (req, res) => {
         youtubeService
       );
 
-      if (executionResult.success && executionResult.action_message) {
+      if (
+        executionResult.success &&
+        executionResult.action_message &&
+        classification.action != "play_video"
+      ) {
         await logActionToDB(userId, executionResult.action_message);
       }
 
@@ -147,6 +164,61 @@ async function executeAction(action, handlerResult, youtubeService) {
       } else {
         return { success: false, message: deleteResult.message };
       }
+
+    case "play_video": {
+      const params = handlerResult.parameters;
+      const playlistBuilder = new PlaylistBuilder(
+        process.env.GEMINI_API_KEY,
+        youtubeService
+      );
+      const searchQuery = await playlistBuilder.generateVideoSearchQuery(
+        params
+      );
+      if (!searchQuery) {
+        return {
+          success: false,
+          message: "Sorry, I couldn't formulate a search query for that.",
+        };
+      }
+      const videoLength =
+        params.video_length !== "any" ? params.video_length : undefined;
+      const videoIds = await youtubeService.searchForVideos(
+        searchQuery,
+        15,
+        videoLength
+      );
+      if (videoIds.length === 0) {
+        return {
+          success: false,
+          message: `I couldn't find any videos for "${searchQuery}".`,
+        };
+      }
+
+      const videos = await youtubeService.getVideoDetails(videoIds);
+
+      console.log('[API] Videos returned')
+      return {
+        success: true,
+        action: "play",
+        message: `Now playing videos about ${searchQuery}.`,
+        videos: videos, // The array of video objects for the queue
+        action_message: `Agent action: User requested to play videos. Synthesized query: "${searchQuery}". Found ${videos.length} videos.`,
+      };
+    }
+
+    // case "manage_playlist": {
+    //   // Add this case
+    //   const params = handlerResult.parameters;
+    //   console.log("Executing manage_playlist with params:", params);
+    //   // Here you would add a nested switch or if/else for the specific management_action
+    //   // This is a placeholder for the logic you will build
+    //   // TODO: Implement the actual YouTube API calls for renaming, adding songs, etc.
+    //   return {
+    //     success: true,
+    //     message: `Successfully performed '${params.management_action}' on the playlist. (This is a placeholder - no real action was taken).`,
+    //     action_message: `Agent action: Performed '${params.management_action}' on playlist '${params.playlist_identifier}'.`,
+    //   };
+    // }
 
     default:
       return {

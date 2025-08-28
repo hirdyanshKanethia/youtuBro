@@ -1,6 +1,4 @@
-// backend/src/models/aiModels.js
-
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 class TaskClassifier {
   constructor(apiKey) {
@@ -10,72 +8,75 @@ class TaskClassifier {
 
   async classifyTask(userPrompt) {
     const classificationPrompt = `
-You are a task classifier for a YouTube playlist management app. 
-Analyze the user's message and classify it into one of these 3 categories:
+You are a task classifier for a YouTube assistant app. 
+Analyze the user's message and classify it into one of these 4 categories:
 
-1. "make_playlist" - User wants to create a new playlist
-2. "remove_playlist" - User wants to delete/remove a playlist  
-3. "manage_playlist" - User wants to modify an existing playlist (add songs, remove songs, rename, etc.)
+1. "make_playlist" - User wants to create a new playlist.
+2. "remove_playlist" - User wants to delete/remove a playlist.
+3. "manage_playlist" - User wants to modify an existing playlist.
+4. "play_video" - User wants to watch or listen to something now.
 
 User message: "${userPrompt}"
 
 Respond ONLY with a JSON object in this exact format:
 {
-  "action": "make_playlist|remove_playlist|manage_playlist",
+  "action": "make_playlist|remove_playlist|manage_playlist|find_video",
   "confidence": 0.95,
-  "reasoning": "Brief explanation of why you chose this classification"
+  "reasoning": "Brief explanation of why you chose this classification."
 }
 
 Examples:
-- "Create a workout playlist" → {"action": "make_playlist", "confidence": 0.95, "reasoning": "User explicitly wants to create a new playlist"}
-- "Delete my old playlist" → {"action": "remove_playlist", "confidence": 0.90, "reasoning": "User wants to delete an existing playlist"}
-- "Add some songs to my rock playlist" → {"action": "manage_playlist", "confidence": 0.92, "reasoning": "User wants to modify an existing playlist by adding songs"}
+- "Create a workout playlist" → {"action": "make_playlist", "confidence": 0.95, "reasoning": "User explicitly wants to create a new playlist."}
+- "Delete my old playlist" → {"action": "remove_playlist", "confidence": 0.90, "reasoning": "User wants to delete an existing playlist."}
+- "Add some songs to my rock playlist" → {"action": "manage_playlist", "confidence": 0.92, "reasoning": "User wants to modify an existing playlist by adding songs."}
+- "Find me the latest video from MKBHD?" → {"action": "play_video", "confidence": 0.98, "reasoning": "User is asking to play a specific video now."}
+- "I want to listen to some jazz music" → {"action": "play_video", "confidence": 0.95, "reasoning": "User wants to listen to a genre of music, implying a queue of videos to play."}
 `;
 
     try {
       const result = await this.model.generateContent(classificationPrompt);
       const response = await result.response;
       let text = response.text();
-      
-      // Extract JSON from response (handles various formats)
+
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No JSON found in response');
+        throw new Error("No JSON found in response");
       }
-      
-      // Parse the JSON response
+
       const classification = JSON.parse(jsonMatch[0]);
-      
-      // Validate the response
+
       if (!this.isValidClassification(classification)) {
-        throw new Error('Invalid classification response');
+        throw new Error("Invalid classification response from model");
       }
-      
+
       return classification;
-      
     } catch (error) {
-      console.error('Classification error:', error);
-      // Return a fallback response
+      console.error("Classification error:", error);
       return {
         action: "unknown",
         confidence: 0.0,
-        reasoning: "Failed to classify the task",
-        error: error.message
+        reasoning: "Failed to classify the task.",
+        error: error.message,
       };
     }
   }
 
   isValidClassification(classification) {
-    const validActions = ['make_playlist', 'remove_playlist', 'manage_playlist'];
-    
+    const validActions = [
+      "make_playlist",
+      "remove_playlist",
+      "manage_playlist",
+      "play_video",
+    ];
+
     return (
       classification &&
-      typeof classification === 'object' &&
+      typeof classification === "object" &&
       validActions.includes(classification.action) &&
-      typeof classification.confidence === 'number' &&
+      typeof classification.confidence === "number" &&
       classification.confidence >= 0 &&
       classification.confidence <= 1 &&
-      typeof classification.reasoning === 'string'
+      typeof classification.reasoning === "string"
     );
   }
 }
