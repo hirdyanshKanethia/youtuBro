@@ -237,6 +237,69 @@ class YouTubeService {
       return []; // Return an empty array on failure
     }
   }
+
+  /**
+   * Fetches all playlists for the authenticated user.
+   * @returns {Promise<Array<Object>>} A promise that resolves to an array of playlist objects.
+   */
+  async getUsersPlaylists() {
+    console.log("[API] Fetching user playlists...");
+    try {
+      const response = await this.youtube.playlists.list({
+        part: "snippet,contentDetails", // Get snippet (title, etc.) and contentDetails (itemCount)
+        mine: true,
+        maxResults: 50, // You can fetch up to 50 playlists at a time
+      });
+
+      // Map the response to a clean format for your frontend
+      const playlists = response.data.items.map((item) => ({
+        id: item.id,
+        name: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.default.url,
+        videoCount: item.contentDetails.itemCount,
+      }));
+
+      console.log(`[API] Found ${playlists.length} playlists.`);
+      return playlists;
+    } catch (error) {
+      console.error(
+        "[API ERROR] Failed to fetch user playlists:",
+        error.message
+      );
+      return []; // Return an empty array on failure
+    }
+  }
+
+  /**
+   * NEW METHOD: Fetches all video items from a specific playlist.
+   * @param {string} playlistId - The ID of the playlist.
+   * @returns {Promise<Array<Object>>} An array of video objects from the playlist.
+   */
+  async getPlaylistItems(playlistId) {
+    console.log(`[API] Fetching items for playlist ID: ${playlistId}...`);
+    try {
+      const response = await this.youtube.playlistItems.list({
+        part: "snippet",
+        playlistId: playlistId,
+        maxResults: 50, // The YouTube API max for this endpoint
+      });
+
+      // Map the response to a clean format
+      const videoIds = response.data.items.map(
+        (item) => item.snippet.resourceId.videoId
+      );
+
+      console.log(`[API] Found ${videoIds.length} items.`);
+      // We return the IDs, and can get details later if needed
+      return videoIds;
+    } catch (error) {
+      console.error(
+        "[API ERROR] Failed to fetch playlist items:",
+        error.message
+      );
+      return [];
+    }
+  }
 }
 
 module.exports = YouTubeService;

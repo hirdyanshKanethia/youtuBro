@@ -7,10 +7,12 @@ app.use(express.json())
 
 const authRoutes = require("./routes/auth");
 const chatRoutes = require("./routes/chat")
+const playlistRoutes = require("./routes/playlists")
 // const youtubeRoutes = require("./routes/youtube");
 
 app.use("/auth", authRoutes);
 app.use("/chat", chatRoutes)
+app.use("/playlists", playlistRoutes)
 // app.use("/youtube", youtubeRoutes);
 
 app.listen(3000, () => {
