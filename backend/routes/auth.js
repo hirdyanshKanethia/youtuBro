@@ -2,6 +2,7 @@ const express = require("express");
 const { getUserInfo, oauth2Client, saveTokens } = require("../services/google");
 const supabase = require("../services/supabase");
 const jwt = require("jsonwebtoken");
+const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -50,8 +51,8 @@ router.get("/oauth2callback", async (req, res) => {
 
     const { data: userRecord, error: selectError } = await supabase
       .from("tokens")
-      .select("id") 
-      .eq("user_id", userInfo.email) 
+      .select("id")
+      .eq("user_id", userInfo.email)
       .single();
 
     if (selectError || !userRecord) {
@@ -63,19 +64,25 @@ router.get("/oauth2callback", async (req, res) => {
 
     const jwtToken = jwt.sign(
       {
-        uuid: userRecord.id, 
-        email: userInfo.email, 
+        uuid: userRecord.id,
+        email: userInfo.email,
         provider: "google",
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "30d" }
     );
 
-    res.json({ message: "Login successful", token: jwtToken });
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    res.redirect(`${frontendUrl}/auth/callback?token=${jwtToken}`);
+    // res.json({ message: "Login successful", token: jwtToken });
   } catch (err) {
     console.error("OAuth error:", err);
     res.status(500).send("OAuth failed");
   }
+});
+
+router.get("/verify", authMiddleware, (req, res) => {
+  res.json({ success: true, message: "Token is valid." });
 });
 
 module.exports = router;

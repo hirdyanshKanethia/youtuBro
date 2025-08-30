@@ -30,7 +30,7 @@ Examples:
 - "Delete my old playlist" → {"action": "remove_playlist", "confidence": 0.90, "reasoning": "User wants to delete an existing playlist."}
 - "Add some songs to my rock playlist" → {"action": "manage_playlist", "confidence": 0.92, "reasoning": "User wants to modify an existing playlist by adding songs."}
 - "Find me the latest video from MKBHD?" → {"action": "play_video", "confidence": 0.98, "reasoning": "User is asking to play a specific video now."}
-- "I want to listen to some jazz music" → {"action": "play_video", "confidence": 0.95, "reasoning": "User wants to listen to a genre of music, implying a queue of videos to play."}
+- "Play some music to listen at the gym": {"action": "play_video", "confidence": 0.96, "reasoning": "User wants to play music for a specific activity (gym), which implies a temporary queue for immediate listening."}
 `;
 
     try {

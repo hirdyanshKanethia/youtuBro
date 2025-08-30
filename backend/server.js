@@ -1,9 +1,16 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require('cors')
 
 const app = express();
 
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  optionsSuccessStatus: 200
+}
+
 app.use(express.json())
+app.use(cors(corsOptions))
 
 const authRoutes = require("./routes/auth");
 const chatRoutes = require("./routes/chat")
