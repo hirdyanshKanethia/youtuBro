@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children }) => {
       } catch (error) {
         // If the token is invalid, the API will return a 401 error
         console.error("Token verification failed:", error);
-        localStorage.removeItem('jwt_token'); // Clean up invalid token
+        // localStorage.removeItem('jwt_token'); // Clean up invalid token
         setIsAuthenticated(false);
       }
     };

@@ -1,11 +1,35 @@
 // backend/models/actionHandlers.js
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+// const OpenAI = require("openai");
 
 class ActionHandlers {
-  constructor(apiKey) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
+  constructor(geminiApiKey) {
+    // Re-initialize the Google Generative AI client.
+    this.genAI = new GoogleGenerativeAI(geminiApiKey);
     this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  }
+
+  async _callModel(prompt) {
+    let responseText;
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      responseText = response.text();
+
+      // Find and clean the JSON block from the model's response.
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON object found in the model's response.");
+      }
+
+      const cleanedJson = jsonMatch[0].replace(/```json\n|\n```/g, "").trim();
+      return JSON.parse(cleanedJson);
+    } catch (error) {
+      console.error("Failed to parse JSON. Raw model output:", responseText);
+      console.error("Model call failed:", error);
+      throw error;
+    }
   }
 
   async handleMakePlaylist(userPrompt) {
@@ -42,19 +66,9 @@ class ActionHandlers {
   `;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text();
-
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = await this._callModel(prompt);
       parsed.userPrompt = userPrompt;
 
-      // Handle case where ready_to_execute is false
       if (!parsed.ready_to_execute) {
         return {
           success: false,
@@ -66,18 +80,10 @@ class ActionHandlers {
           parameters: parsed.parameters,
         };
       }
-
-      return {
-        success: true,
-        ...parsed,
-      };
+      return { success: true, ...parsed };
     } catch (error) {
       console.error("Make playlist handler error:", error);
-      return {
-        success: false,
-        error: error.message,
-        ready_to_execute: false,
-      };
+      return { success: false, error: error.message, ready_to_execute: false };
     }
   }
 
@@ -128,12 +134,7 @@ class ActionHandlers {
     `;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text().replace(/```json\n|\n```/g, "");
-      const parsed = JSON.parse(text);
-
-      // Post-processing to align with the rest of the application
+      const parsed = await this._callModel(prompt);
       if (!parsed.ready_to_execute || !parsed.parameters.playlist_to_delete) {
         return {
           success: false,
@@ -143,18 +144,10 @@ class ActionHandlers {
           parameters: parsed.parameters,
         };
       }
-
-      return {
-        success: true,
-        ...parsed,
-      };
+      return { success: true, ...parsed };
     } catch (error) {
       console.error("Remove playlist handler error:", error);
-      return {
-        success: false,
-        error: error.message,
-        ready_to_execute: false,
-      };
+      return { success: false, error: error.message, ready_to_execute: false };
     }
   }
 
@@ -191,22 +184,10 @@ Respond with JSON in this format:
 `;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text();
-
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
-      }
-
-      return JSON.parse(jsonMatch[0]);
+      return await this._callModel(prompt);
     } catch (error) {
       console.error("Manage playlist handler error:", error);
-      return {
-        error: error.message,
-        ready_to_execute: false,
-      };
+      return { error: error.message, ready_to_execute: false };
     }
   }
 
@@ -244,11 +225,7 @@ Respond with JSON in this format:
     `;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text().replace(/```json\n|\n```/g, "");
-      const parsed = JSON.parse(text);
-
+      const parsed = await this._callModel(prompt);
       if (!parsed.ready_to_execute) {
         return {
           success: false,
@@ -258,18 +235,10 @@ Respond with JSON in this format:
           parameters: parsed.parameters,
         };
       }
-
-      return {
-        success: true,
-        ...parsed,
-      };
+      return { success: true, ...parsed };
     } catch (error) {
       console.error("Play video handler error:", error);
-      return {
-        success: false,
-        error: error.message,
-        ready_to_execute: false,
-      };
+      return { success: false, error: error.message, ready_to_execute: false };
     }
   }
 }

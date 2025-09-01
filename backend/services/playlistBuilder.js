@@ -1,11 +1,34 @@
 // backend/services/playlistBuilder.js
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+// const OpenAI = require("openai");
 
 class PlaylistBuilder {
   constructor(geminiApiKey, youtubeService) {
-    const genAI = new GoogleGenerativeAI(geminiApiKey);
-    this.model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    this.genAI = new GoogleGenerativeAI(geminiApiKey);
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     this.youtubeService = youtubeService;
+  }
+
+  async _callModel(prompt) {
+    let responseText;
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      responseText = response.text();
+
+      // Find and clean the JSON block from the model's text response.
+      const jsonMatch = responseText.match(/\{[\s\S]*\}|"[^"]*"/);
+      if (!jsonMatch) {
+        throw new Error("No JSON object found in the model's response.");
+      }
+
+      const cleanedJson = jsonMatch[0].replace(/```json\n|\n```/g, "").trim();
+      return JSON.parse(cleanedJson);
+    } catch (error) {
+      console.error("Failed to parse JSON. Raw model output:", responseText);
+      console.error("Model call failed:", error);
+      throw error;
+    }
   }
   /**
    * Main execute method that acts as a dispatcher based on the 'need_roadmap' parameter.
@@ -14,14 +37,10 @@ class PlaylistBuilder {
     if (!playlistData.success || !playlistData.ready_to_execute) {
       throw new Error("Cannot execute playlist creation. Data is not ready.");
     }
-
     const params = playlistData.parameters;
-
     if (params.need_roadmap === "yes") {
-      console.log("Starting roadmap-based playlist creation...");
       return this._executeRoadmapPlaylist(playlistData);
     } else {
-      console.log("Starting simple playlist creation...");
       return this._executeSimplePlaylist(playlistData);
     }
   }
@@ -126,11 +145,8 @@ class PlaylistBuilder {
     `;
 
     try {
-      console.log("Generating dynamic roadmap and queries...");
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text().replace(/```json\n|\n```/g, "");
-      return JSON.parse(text);
+      console.log("Generating dynamic roadmap and queries");
+      return await this._callModel(prompt);
     } catch (error) {
       console.error("Error generating roadmap:", error);
       return null;
@@ -163,14 +179,9 @@ class PlaylistBuilder {
     `;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text();
-
-      // Clean up potential markdown code fences
-      text = text.replace(/```json\n|\n```/g, "");
-
-      const query = JSON.parse(text);
+      console.log("Generating single search query with DeepSeek...");
+      const parsed = await this._callModel(prompt);
+      const query = parsed.query || Object.values(parsed)[0];
       console.log(`Generated single search query: "${query}"`);
       return query;
     } catch (error) {
@@ -256,21 +267,25 @@ class PlaylistBuilder {
       1. Combine the provided parameters into a single, effective search query.
       2. Prioritize the most specific information. If a creator is mentioned, they should be prominent in the query.
       3. If the parameters are vague, create a broader, more general query.
-      4. Respond ONLY with a valid JSON string containing the final query.
+      4. Respond ONLY with a valid JSON object with a single key named "query".
 
       Example Input: { topic: "new song", creator: "Tame Impala" }
-      Example Response: "Tame Impala new song"
+      Example Response: {"query": "Tame Impala new song"}
 
       Example Input: { genre: "80s rock music" }
-      Example Response: "best 80s rock music"
+      Example Response: {"query": "best 80s rock music"}
     `;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text().replace(/```json\n|\n```/g, "");
-      // The response is a JSON string, so it needs to be parsed
-      const query = JSON.parse(text);
+      const parsed = await this._callModel(prompt);
+
+      // Now that the format is guaranteed, we can directly access .query
+      const query = parsed.query;
+
+      if (!query) {
+        throw new Error("Model returned a JSON object without a 'query' key.");
+      }
+
       console.log(`Synthesized search query: "${query}"`);
       return query;
     } catch (error) {

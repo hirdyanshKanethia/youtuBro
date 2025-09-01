@@ -196,7 +196,7 @@ async function executeAction(action, handlerResult, youtubeService) {
 
       const videos = await youtubeService.getVideoDetails(videoIds);
 
-      console.log('[API] Videos returned')
+      console.log("[API] Videos returned");
       return {
         success: true,
         action: "play",

@@ -15,11 +15,13 @@ app.use(cors(corsOptions))
 const authRoutes = require("./routes/auth");
 const chatRoutes = require("./routes/chat")
 const playlistRoutes = require("./routes/playlists")
+const videoRoutes = require("./routes/videos")
 // const youtubeRoutes = require("./routes/youtube");
 
 app.use("/auth", authRoutes);
 app.use("/chat", chatRoutes)
 app.use("/playlists", playlistRoutes)
+app.use("/videos", videoRoutes)
 // app.use("/youtube", youtubeRoutes);
 
 app.listen(3000, () => {

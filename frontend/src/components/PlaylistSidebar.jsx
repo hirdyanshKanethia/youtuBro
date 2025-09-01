@@ -1,33 +1,49 @@
-import React, { useState, useEffect } from 'react';
-// import axios from 'axios'; // You will use this later
+import React, { useState, useEffect } from "react";
+import api from "../api";
+import PlaylistItem from "./PlaylistItem";
 
-const PlaylistSidebar = () => {
+const PlaylistSidebar = ({ onPlaylistSelect, selectedPlaylist }) => {
   const [playlists, setPlaylists] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch playlists from your /api/playlists endpoint
-    // const fetchPlaylists = async () => {
-    //   setLoading(true);
-    //   // const token = localStorage.getItem('jwt_token');
-    //   // const response = await axios.get('/api/playlists', { headers: { Authorization: `Bearer ${token}` } });
-    //   // setPlaylists(response.data.playlists);
-    //   setLoading(false);
-    // };
-    // fetchPlaylists();
+    const fetchPlaylists = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/playlists");
+        if (response.data.success) {
+          setPlaylists(response.data.playlists);
+        }
+      } catch (error) {
+        console.error("Failed to fetch playlists:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPlaylists();
   }, []);
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">Your Playlists</h2>
-      {loading ? <p>Loading...</p> : (
-        <ul>
-          {/* This is placeholder data */}
-          <li className="p-2 hover:bg-gray-700 rounded cursor-pointer">Workout Mix</li>
-          <li className="p-2 hover:bg-gray-700 rounded cursor-pointer">Study Beats</li>
-          <li className="p-2 hover:bg-gray-700 rounded cursor-pointer">Rock Anthems</li>
-        </ul>
-      )}
+    <div className="h-full flex flex-col">
+      <h2 className="text-2xl font-bold mb-4 flex-shrink-0">Your Playlists</h2>
+      <div className="flex-grow overflow-y-auto hide-scrollbar">
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <ul>
+            {playlists.map((playlist) => (
+              <PlaylistItem
+                key={playlist.id}
+                playlist={playlist}
+                onSelect={() => onPlaylistSelect(playlist)}
+                isSelected={
+                  selectedPlaylist && selectedPlaylist.id === playlist.id
+                }
+              />
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,8 +1,9 @@
+// const OpenAI = require("openai");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 class TaskClassifier {
-  constructor(apiKey) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
+  constructor(geminiApiKey) {
+    this.genAI = new GoogleGenerativeAI(geminiApiKey);
     this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   }
 
@@ -20,31 +21,25 @@ User message: "${userPrompt}"
 
 Respond ONLY with a JSON object in this exact format:
 {
-  "action": "make_playlist|remove_playlist|manage_playlist|find_video",
+  "action": "make_playlist|remove_playlist|manage_playlist|play_video",
   "confidence": 0.95,
   "reasoning": "Brief explanation of why you chose this classification."
 }
-
-Examples:
-- "Create a workout playlist" → {"action": "make_playlist", "confidence": 0.95, "reasoning": "User explicitly wants to create a new playlist."}
-- "Delete my old playlist" → {"action": "remove_playlist", "confidence": 0.90, "reasoning": "User wants to delete an existing playlist."}
-- "Add some songs to my rock playlist" → {"action": "manage_playlist", "confidence": 0.92, "reasoning": "User wants to modify an existing playlist by adding songs."}
-- "Find me the latest video from MKBHD?" → {"action": "play_video", "confidence": 0.98, "reasoning": "User is asking to play a specific video now."}
-- "Play some music to listen at the gym": {"action": "play_video", "confidence": 0.96, "reasoning": "User wants to play music for a specific activity (gym), which implies a temporary queue for immediate listening."}
 `;
 
     try {
+      // Use the Google AI client's generateContent method.
       const result = await this.model.generateContent(classificationPrompt);
       const response = await result.response;
       let text = response.text();
 
+      // Manually find and parse the JSON from the text response.
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error("No JSON found in response");
       }
 
       const classification = JSON.parse(jsonMatch[0]);
-
       if (!this.isValidClassification(classification)) {
         throw new Error("Invalid classification response from model");
       }
