@@ -16,6 +16,8 @@ class PlaylistBuilder {
       const response = await result.response;
       responseText = response.text();
 
+      console.log("Raw response: ", responseText);
+
       // Find and clean the JSON block from the model's text response.
       const jsonMatch = responseText.match(/\{[\s\S]*\}|"[^"]*"/);
       if (!jsonMatch) {
@@ -179,9 +181,12 @@ class PlaylistBuilder {
     `;
 
     try {
-      console.log("Generating single search query with DeepSeek...");
+      console.log("Generating single search query...");
       const parsed = await this._callModel(prompt);
-      const query = parsed.query || Object.values(parsed)[0];
+      const query =
+        typeof parsed === "object"
+          ? parsed.query || Object.values(parsed)[0]
+          : parsed;
       console.log(`Generated single search query: "${query}"`);
       return query;
     } catch (error) {

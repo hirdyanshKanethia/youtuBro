@@ -6,6 +6,8 @@ import CollapsedPlaylistItem from "./CollapsedPlaylistItem";
 import { HiMenuAlt2 } from "react-icons/hi";
 
 const PlaylistSidebar = ({
+  playlists,
+  isLoading,
   onPlaylistSelect,
   onPlayPlaylist,
   selectedPlaylist,
@@ -14,26 +16,6 @@ const PlaylistSidebar = ({
   onShufflePlay,
   onDelete,
 }) => {
-  const [playlists, setPlaylists] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchPlaylists = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get("/playlists");
-        if (response.data.success) {
-          setPlaylists(response.data.playlists);
-        }
-      } catch (error) {
-        console.error("Failed to fetch playlists:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPlaylists();
-  }, []);
-
   return (
     <div className="h-full flex flex-col">
       <div
@@ -56,31 +38,34 @@ const PlaylistSidebar = ({
       </div>
 
       <div className="flex-grow overflow-y-auto hide-scrollbar">
-        {/* ... (loading logic) */}
-        <ul>
-          {playlists.map((playlist) =>
-            // Conditionally render the correct item component
-            isSidebarOpen ? (
-              <PlaylistItem
-                key={playlist.id}
-                playlist={playlist}
-                onSelect={() => onPlaylistSelect(playlist)}
-                onPlay={() => onPlayPlaylist(playlist)}
-                onShufflePlay={() => onShufflePlay(playlist)}
-                onDelete={() => onDelete(playlist)}
-                isSelected={
-                  selectedPlaylist && selectedPlaylist.id === playlist.id
-                }
-              />
-            ) : (
-              <CollapsedPlaylistItem
-                key={playlist.id}
-                playlist={playlist}
-                onPlay={() => onPlayPlaylist(playlist)}
-              />
-            )
-          )}
-        </ul>
+        {isLoading ? (
+          <p>Loading...</p>
+        ) : (
+          <ul>
+            {playlists.map((playlist) =>
+              // Conditionally render the correct item component
+              isSidebarOpen ? (
+                <PlaylistItem
+                  key={playlist.id}
+                  playlist={playlist}
+                  onSelect={() => onPlaylistSelect(playlist)}
+                  onPlay={() => onPlayPlaylist(playlist)}
+                  onShufflePlay={() => onShufflePlay(playlist)}
+                  onDelete={() => onDelete(playlist)}
+                  isSelected={
+                    selectedPlaylist && selectedPlaylist.id === playlist.id
+                  }
+                />
+              ) : (
+                <CollapsedPlaylistItem
+                  key={playlist.id}
+                  playlist={playlist}
+                  onPlay={() => onPlayPlaylist(playlist)}
+                />
+              )
+            )}
+          </ul>
+        )}
       </div>
     </div>
   );

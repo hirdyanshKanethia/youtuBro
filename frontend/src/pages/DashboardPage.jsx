@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PlaylistSidebar from "../components/PlaylistSidebar";
 import YouTubePlayer from "../components/YouTubePlayer";
 import ChatInterface from "../components/ChatInterface";
@@ -18,6 +18,25 @@ const DashboardPage = () => {
   const [isQueueOpen, setIsQueueOpen] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [playlists, setPlaylists] = useState([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(true);
+
+  useEffect(() => {
+    const fetchPlaylists = async () => {
+      try {
+        setLoadingPlaylists(true);
+        const response = await api.get("/playlists");
+        if (response.data.success) {
+          setPlaylists(response.data.playlists);
+        }
+      } catch (error) {
+        console.error("Failed to fetch playlists:", error);
+      } finally {
+        setLoadingPlaylists(false);
+      }
+    };
+    fetchPlaylists();
+  }, []);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -218,21 +237,21 @@ const DashboardPage = () => {
   };
 
   const handleDeletePlaylist = async (playlist) => {
-    if (window.confirm(`Are you sure you want to delete the playlist "${playlist.name}"?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete the playlist "${playlist.name}"?`
+      )
+    ) {
       try {
-        console.log("Deleting playlist:", playlist.id);
-        
         await api.delete(`/playlists/${playlist.id}`);
-        
-        setPlaylists(prev => prev.filter(p => p.id !== playlist.id));
+        // This will now work because setPlaylists is defined in this component.
+        setPlaylists((prev) => prev.filter((p) => p.id !== playlist.id));
 
         if (selectedPlaylist && selectedPlaylist.id === playlist.id) {
           handleCloseDetail();
         }
-
       } catch (error) {
         console.error("Failed to delete playlist:", error);
-        // You could add a user-facing error message here, e.g., using a toast notification
         alert("Failed to delete the playlist. Please try again.");
       }
     }
@@ -256,13 +275,15 @@ const DashboardPage = () => {
         >
           {(isSidebarOpen || window.innerWidth >= 768) && (
             <PlaylistSidebar
+              playlists={playlists}
+              isLoading={loadingPlaylists}
               onPlaylistSelect={handlePlaylistSelect}
               onPlayPlaylist={handlePlayPlaylist}
               selectedPlaylist={selectedPlaylist}
               toggleSidebar={toggleSidebar}
               isSidebarOpen={isSidebarOpen}
-              onShufflePlay={handleShufflePlayPlaylist} 
-              onDelete={handleDeletePlaylist} 
+              onShufflePlay={handleShufflePlayPlaylist}
+              onDelete={handleDeletePlaylist}
             />
           )}
         </div>
