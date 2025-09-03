@@ -1,7 +1,41 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { BsFillPlayFill, BsThreeDotsVertical } from "react-icons/bs";
+import DropdownMenu from "./DropdownMenu";
 
-const PlaylistItem = ({ playlist, onSelect, onPlay, isSelected }) => {
+const PlaylistItem = ({
+  playlist,
+  onSelect,
+  onPlay,
+  onShufflePlay,
+  onDelete,
+  isSelected,
+}) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuRef]);
+
+  const closeMenu = () => setIsMenuOpen(false);
+
+  const menuOptions = [
+    { label: "Shuffle Play", action: onShufflePlay },
+    {
+      label: "Delete Playlist",
+      action: onDelete,
+      className: "text-red-500 hover:bg-red-500 hover:text-white", // Custom style for delete
+    },
+  ];
+
   return (
     <li
       onClick={onSelect}
@@ -34,12 +68,20 @@ const PlaylistItem = ({ playlist, onSelect, onPlay, isSelected }) => {
           <p className="text-sm text-gray-400">{playlist.videoCount} videos</p>
         </div>
       </div>
-      <button
-        onClick={(e) => e.stopPropagation()}
-        className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-600"
-      >
-        <BsThreeDotsVertical size={20} />
-      </button>
+      <div className="relative" ref={menuRef}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMenuOpen(!isMenuOpen);
+          }}
+          className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-600"
+        >
+          <BsThreeDotsVertical size={20} />
+        </button>
+        {isMenuOpen && (
+          <DropdownMenu options={menuOptions} onCloseMenu={closeMenu} />
+        )}
+      </div>
     </li>
   );
 };

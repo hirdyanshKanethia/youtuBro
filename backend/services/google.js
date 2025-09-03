@@ -56,6 +56,12 @@ async function getAuthClient(userId) {
   try {
     const tokens = await loadTokens(userId);
 
+    console.log("Using Google OAuth client config:", {
+      client_id: oauth2Client._clientId,
+      client_secret_present: !!oauth2Client._clientSecret,
+      redirect_uri: oauth2Client.redirectUri,
+    });
+
     oauth2Client.setCredentials({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,

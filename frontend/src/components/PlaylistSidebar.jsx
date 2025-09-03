@@ -11,6 +11,8 @@ const PlaylistSidebar = ({
   selectedPlaylist,
   toggleSidebar,
   isSidebarOpen,
+  onShufflePlay,
+  onDelete,
 }) => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +66,8 @@ const PlaylistSidebar = ({
                 playlist={playlist}
                 onSelect={() => onPlaylistSelect(playlist)}
                 onPlay={() => onPlayPlaylist(playlist)}
+                onShufflePlay={() => onShufflePlay(playlist)}
+                onDelete={() => onDelete(playlist)}
                 isSelected={
                   selectedPlaylist && selectedPlaylist.id === playlist.id
                 }

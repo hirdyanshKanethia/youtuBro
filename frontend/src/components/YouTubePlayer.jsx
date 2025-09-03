@@ -1,14 +1,45 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 
-const YouTubePlayer = ({ videoQueue, currentVideoIndex, setCurrentVideoIndex }) => {
+const YouTubePlayer = ({
+  videoQueue,
+  currentVideoIndex,
+  setCurrentVideoIndex,
+  isPlaying,
+  isMuted
+}) => {
   const playerRef = useRef(null);
   const currentVideo = videoQueue[currentVideoIndex];
 
   // This ref holds the latest state and props for our event handlers
-  const stateRef = useRef({ videoQueue, currentVideoIndex, setCurrentVideoIndex });
+  const stateRef = useRef({
+    videoQueue,
+    currentVideoIndex,
+    setCurrentVideoIndex,
+  });
   useEffect(() => {
     stateRef.current = { videoQueue, currentVideoIndex, setCurrentVideoIndex };
   });
+
+  useEffect(() => {
+    if (playerRef.current && playerRef.current.getPlayerState) {
+      if (isPlaying) {
+        playerRef.current.playVideo();
+      } else {
+        playerRef.current.pauseVideo();
+      }
+    }
+  }, [isPlaying]);
+
+  // This effect handles mute/unmute commands
+  useEffect(() => {
+    if (playerRef.current && playerRef.current.mute) {
+      if (isMuted) {
+        playerRef.current.mute();
+      } else {
+        playerRef.current.unMute();
+      }
+    }
+  }, [isMuted]);
 
   // This effect runs once to create the player
   useEffect(() => {
@@ -16,8 +47,9 @@ const YouTubePlayer = ({ videoQueue, currentVideoIndex, setCurrentVideoIndex }) 
       // This function is called when the player's state changes
       const onPlayerStateChange = (event) => {
         // Use the ref to get the latest state, avoiding stale closures
-        const { videoQueue, currentVideoIndex, setCurrentVideoIndex } = stateRef.current;
-        
+        const { videoQueue, currentVideoIndex, setCurrentVideoIndex } =
+          stateRef.current;
+
         // Check if the video has ended (state 0)
         if (event.data === window.YT.PlayerState.ENDED) {
           if (currentVideoIndex < videoQueue.length - 1) {
@@ -29,16 +61,16 @@ const YouTubePlayer = ({ videoQueue, currentVideoIndex, setCurrentVideoIndex }) 
         }
       };
 
-      playerRef.current = new window.YT.Player('player-div', {
-        height: '100%',
-        width: '100%',
+      playerRef.current = new window.YT.Player("player-div", {
+        height: "100%",
+        width: "100%",
         playerVars: {
           autoplay: 1,
           mute: 0,
           playsinline: 1,
         },
         events: {
-          'onStateChange': onPlayerStateChange,
+          onStateChange: onPlayerStateChange,
         },
       });
     };
@@ -66,7 +98,7 @@ const YouTubePlayer = ({ videoQueue, currentVideoIndex, setCurrentVideoIndex }) 
   return (
     <div className="w-full h-full flex items-center justify-center bg-black rounded-lg">
       <div id="player-div" className="w-full h-full"></div>
-      
+
       {videoQueue.length === 0 && (
         <div className="absolute text-center">
           {/* <h3 className="text-2xl">Welcome to YoutuBro!</h3>
