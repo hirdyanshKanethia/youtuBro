@@ -69,8 +69,8 @@ const YouTubePlayer = ({ videoQueue, currentVideoIndex, setCurrentVideoIndex }) 
       
       {videoQueue.length === 0 && (
         <div className="absolute text-center">
-          <h3 className="text-2xl">Welcome to YoutuBro!</h3>
-          <p className="text-gray-400">Use the chat below to find a video to play.</p>
+          {/* <h3 className="text-2xl">Welcome to YoutuBro!</h3>
+          <p className="text-gray-400">Use the chat below to find a video to play.</p> */}
         </div>
       )}
     </div>

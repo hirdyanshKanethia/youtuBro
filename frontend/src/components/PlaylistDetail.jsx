@@ -28,6 +28,7 @@ const PlaylistDetail = ({ playlist, items, isLoading, onClose, onPlayVideo }) =>
                 key={video.id} 
                 video={video} 
                 onPlay={() => onPlayVideo(video)}
+                // onAddToQueue={() => onAddToQueue(video)}
               />
             ))}
           </ul>

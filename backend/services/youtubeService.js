@@ -271,33 +271,43 @@ class YouTubeService {
   }
 
   /**
-   * NEW METHOD: Fetches all video items from a specific playlist.
+   * Fetches ALL video items from a specific playlist, handling pagination.
    * @param {string} playlistId - The ID of the playlist.
-   * @returns {Promise<Array<Object>>} An array of video objects from the playlist.
+   * @returns {Promise<Array<string>>} An array of all video IDs from the playlist.
    */
   async getPlaylistItems(playlistId) {
-    console.log(`[API] Fetching items for playlist ID: ${playlistId}...`);
+    console.log(`[API] Fetching all items for playlist ID: ${playlistId}`);
+    let allVideoIds = [];
+    let nextPageToken = null;
+
     try {
-      const response = await this.youtube.playlistItems.list({
-        part: "snippet",
-        playlistId: playlistId,
-        maxResults: 50, // The YouTube API max for this endpoint
-      });
+      do {
+        // Make the API request for a page of results.
+        const response = await this.youtube.playlistItems.list({
+          part: "snippet",
+          playlistId: playlistId,
+          maxResults: 50, // Request the maximum allowed per page
+          pageToken: nextPageToken, // On subsequent requests, provide the token
+        });
 
-      // Map the response to a clean format
-      const videoIds = response.data.items.map(
-        (item) => item.snippet.resourceId.videoId
-      );
+        // Add the fetched video IDs to our main list.
+        const videoIds = response.data.items.map(
+          (item) => item.snippet.resourceId.videoId
+        );
+        allVideoIds = allVideoIds.concat(videoIds);
 
-      console.log(`[API] Found ${videoIds.length} items.`);
-      // We return the IDs, and can get details later if needed
-      return videoIds;
+        // Get the token for the next page. If it doesn't exist, the loop will end.
+        nextPageToken = response.data.nextPageToken;
+      } while (nextPageToken); // Continue looping as long as there's a next page
+
+      console.log(`[API] Found a total of ${allVideoIds.length} items.`);
+      return allVideoIds;
     } catch (error) {
       console.error(
-        "[API ERROR] Failed to fetch playlist items:",
-        error.message
+        "[API ERROR] Failed to fetch all playlist items:",
+        error
       );
-      return [];
+      return []; // Return whatever was fetched before the error
     }
   }
 }

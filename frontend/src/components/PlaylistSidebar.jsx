@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from "react";
 import api from "../api";
 import PlaylistItem from "./PlaylistItem";
+import CollapsedPlaylistItem from "./CollapsedPlaylistItem";
 
-const PlaylistSidebar = ({ onPlaylistSelect, selectedPlaylist }) => {
+import { HiMenuAlt2 } from "react-icons/hi";
+
+const PlaylistSidebar = ({
+  onPlaylistSelect,
+  onPlayPlaylist,
+  selectedPlaylist,
+  toggleSidebar,
+  isSidebarOpen,
+}) => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,24 +34,49 @@ const PlaylistSidebar = ({ onPlaylistSelect, selectedPlaylist }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <h2 className="text-2xl font-bold mb-4 flex-shrink-0">Your Playlists</h2>
+      <div
+        className={`flex items-center mb-4 flex-shrink-0 ${
+          isSidebarOpen ? "justify-between" : "justify-center"
+        }`}
+      >
+        {/* Conditionally render the title */}
+        {isSidebarOpen && (
+          <h2 className="text-2xl font-bold">Your Playlists</h2>
+        )}
+        <button
+          onClick={toggleSidebar}
+          className="text-gray-400 hover:text-white border border-gray-600 rounded-full p-1 transition-colors hover:border-purple-500 cursor-pointer"
+          title="Toggle Playlist Sidebar"
+        >
+          {/* You can use a different icon for open/close if you wish */}
+          <HiMenuAlt2 size={24} />
+        </button>
+      </div>
+
       <div className="flex-grow overflow-y-auto hide-scrollbar">
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <ul>
-            {playlists.map((playlist) => (
+        {/* ... (loading logic) */}
+        <ul>
+          {playlists.map((playlist) =>
+            // Conditionally render the correct item component
+            isSidebarOpen ? (
               <PlaylistItem
                 key={playlist.id}
                 playlist={playlist}
                 onSelect={() => onPlaylistSelect(playlist)}
+                onPlay={() => onPlayPlaylist(playlist)}
                 isSelected={
                   selectedPlaylist && selectedPlaylist.id === playlist.id
                 }
               />
-            ))}
-          </ul>
-        )}
+            ) : (
+              <CollapsedPlaylistItem
+                key={playlist.id}
+                playlist={playlist}
+                onPlay={() => onPlayPlaylist(playlist)}
+              />
+            )
+          )}
+        </ul>
       </div>
     </div>
   );
