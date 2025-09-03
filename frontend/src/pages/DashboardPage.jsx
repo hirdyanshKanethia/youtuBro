@@ -250,6 +250,7 @@ const DashboardPage = () => {
         if (selectedPlaylist && selectedPlaylist.id === playlist.id) {
           handleCloseDetail();
         }
+        alert(`Playlist "${playlist.name}" was successfully deleted.`);
       } catch (error) {
         console.error("Failed to delete playlist:", error);
         alert("Failed to delete the playlist. Please try again.");
