@@ -1,6 +1,6 @@
 import React from "react";
 import { IoClose } from "react-icons/io5";
-import VideoItem from "./VideoItem"; 
+import VideoItem from "./VideoItem";
 
 const PlaylistDetail = ({
   playlist,
@@ -8,7 +8,9 @@ const PlaylistDetail = ({
   isLoading,
   // onClose,
   onPlayFromPlaylist,
-  onAddToQueue
+  onAddToQueue,
+  onAddToPlaylist,
+  onRemoveFromPlaylist
 }) => {
   return (
     <div className="p-1 h-full flex flex-col bg-gray-800">
@@ -30,6 +32,8 @@ const PlaylistDetail = ({
                 video={video}
                 onPlay={() => onPlayFromPlaylist(items, index)}
                 onAddToQueue={() => onAddToQueue(video)}
+                onAddToPlaylist={() => onAddToPlaylist(video)}
+                onRemoveFromPlaylist={() => onRemoveFromPlaylist(video)}
               />
             ))}
           </ul>

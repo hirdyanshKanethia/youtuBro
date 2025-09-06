@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { BsFillPlayFill, BsThreeDotsVertical } from "react-icons/bs";
 import DropdownMenu from "./DropdownMenu";
 
-const VideoItem = ({ video, onPlay, onAddToQueue }) => {
+const VideoItem = ({ video, onPlay, onAddToQueue, onAddToPlaylist, onRemoveFromPlaylist }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -23,15 +23,19 @@ const VideoItem = ({ video, onPlay, onAddToQueue }) => {
 
   const menuOptions = [
     { label: "Add to queue", action: () => onAddToQueue(video) },
+    { label: "Add to another playlist", action: onAddToPlaylist },
     {
-      label: "Go to channel",
-      action: () => console.log("Go to channel for:", video.title),
+      label: "Remove from this playlist",
+      action: onRemoveFromPlaylist,
+      className: "text-red-500 hover:bg-red-500 hover:text-white",
     },
-    { label: "Share", action: () => console.log("Share:", video.title) },
   ];
 
   return (
-    <li onClick={onPlay} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700">
+    <li
+      onClick={onPlay}
+      className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700"
+    >
       {/* Image and Thumbnail div */}
       <div className="relative group flex-shrink-0">
         <img

@@ -6,6 +6,7 @@ import {
   IoVolumeHigh,
   IoVolumeMute,
   IoClose,
+  IoAddCircleOutline,
 } from "react-icons/io5";
 
 import { BsCardList } from "react-icons/bs";
@@ -18,6 +19,7 @@ const PlayerControls = ({
   onMuteToggle,
   isQueueOpen,
   onToggleQueue,
+  onAddToPlaylist
 }) => {
   return (
     // Use justify-between to push items to the top and bottom
@@ -44,6 +46,13 @@ const PlayerControls = ({
           title={isMuted ? "Unmute" : "Mute"}
         >
           {isMuted ? <IoVolumeMute size={24} /> : <IoVolumeHigh size={24} />}
+        </button>
+        <button
+          onClick={onAddToPlaylist}
+          className="text-gray-300 hover:text-white"
+          title="Add to a playlist"
+        >
+          <IoAddCircleOutline size={24} />
         </button>
       </div>
 

@@ -133,4 +133,86 @@ router.delete("/:playlistId", authMiddleware, async (req, res) => {
   }
 });
 
+router.post("/:playlistId/items", authMiddleware, async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+    const { playlistId } = req.params;
+    const { videoId } = req.body; // Get videoId from the request body
+
+    if (!videoId) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Video ID is required." });
+    }
+
+    // Create an authenticated youtubeService instance
+    const { data: tokens, error } = await supabase
+      .from("tokens")
+      .select("...")
+      .eq("id", userId)
+      .single();
+    if (error || !tokens)
+      return res.status(401).json({ error: "Could not retrieve user tokens." });
+
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
+    oAuth2Client.setCredentials({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+    });
+    const youtubeService = new YouTubeService(oAuth2Client);
+
+    const result = await youtubeService.addVideoToPlaylist(playlistId, videoId);
+    res.json(result);
+  } catch (error) {
+    console.error("Add video to playlist route error:", error);
+    res.status(500).json({ success: false, error: "Failed to add video." });
+  }
+});
+
+router.delete(
+  "/:playlistId/items/:videoId",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { id: userId } = req.user;
+      const { playlistId, videoId } = req.params;
+
+      // Create an authenticated youtubeService instance
+      const { data: tokens, error } = await supabase
+        .from("tokens")
+        .select("...")
+        .eq("id", userId)
+        .single();
+      if (error || !tokens)
+        return res
+          .status(401)
+          .json({ error: "Could not retrieve user tokens." });
+
+      const oAuth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET
+      );
+      oAuth2Client.setCredentials({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+      });
+      const youtubeService = new YouTubeService(oAuth2Client);
+
+      const result = await youtubeService.removeVideoFromPlaylist(
+        playlistId,
+        videoId
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Remove video from playlist route error:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to remove video." });
+    }
+  }
+);
+
 module.exports = router;

@@ -303,11 +303,98 @@ class YouTubeService {
       console.log(`[API] Found a total of ${allVideoIds.length} items.`);
       return allVideoIds;
     } catch (error) {
+      console.error("[API ERROR] Failed to fetch all playlist items:", error);
+      return []; // Return whatever was fetched before the error
+    }
+  }
+
+  // ... (inside the YouTubeService class)
+
+  /**
+   * Adds a single video to a specified playlist.
+   * @param {string} playlistId - The ID of the target playlist.
+   * @param {string} videoId - The ID of the video to add.
+   * @returns {Promise<{success: boolean, message: string}>}
+   */
+  async addVideoToPlaylist(playlistId, videoId) {
+    console.log(`[API] Adding video ${videoId} to playlist ${playlistId}...`);
+    try {
+      await this.youtube.playlistItems.insert({
+        part: "snippet",
+        requestBody: {
+          snippet: {
+            playlistId: playlistId,
+            resourceId: {
+              kind: "youtube#video",
+              videoId: videoId,
+            },
+          },
+        },
+      });
+      return { success: true, message: "Video added successfully." };
+    } catch (error) {
       console.error(
-        "[API ERROR] Failed to fetch all playlist items:",
+        "[API ERROR] Failed to add video to playlist:",
         error
       );
-      return []; // Return whatever was fetched before the error
+      return { success: false, message: "Failed to add video." };
+    }
+  }
+
+  /**
+   * Removes a video from a specific playlist.
+   * This requires finding the video's unique playlistItemId first.
+   * @param {string} playlistId - The ID of the target playlist.
+   * @param {string} videoId - The ID of the video to remove.
+   * @returns {Promise<{success: boolean, message: string}>}
+   */
+  async removeVideoFromPlaylist(playlistId, videoId) {
+    console.log(
+      `[API] Attempting to remove video ${videoId} from playlist ${playlistId}...`
+    );
+    try {
+      // Step 1: Find the playlistItemId for the given videoId.
+      let playlistItemId = null;
+      let nextPageToken = null;
+
+      // Loop through all pages of the playlist to find the video.
+      do {
+        const response = await this.youtube.playlistItems.list({
+          part: "snippet",
+          playlistId: playlistId,
+          maxResults: 50,
+          pageToken: nextPageToken,
+        });
+
+        const foundItem = response.data.items.find(
+          (item) => item.snippet.resourceId.videoId === videoId
+        );
+
+        if (foundItem) {
+          playlistItemId = foundItem.id;
+          break; // Exit the loop once the item is found
+        }
+
+        nextPageToken = response.data.nextPageToken;
+      } while (nextPageToken);
+
+      if (!playlistItemId) {
+        throw new Error("Video not found in this playlist.");
+      }
+
+      // Step 2: Delete the item using its playlistItemId.
+      await this.youtube.playlistItems.delete({
+        id: playlistItemId,
+      });
+
+      console.log(`[API] Successfully removed item ${playlistItemId}.`);
+      return { success: true, message: "Video removed successfully." };
+    } catch (error) {
+      console.error(
+        "[API ERROR] Failed to remove video from playlist:",
+        error.message
+      );
+      return { success: false, message: "Failed to remove video." };
     }
   }
 }

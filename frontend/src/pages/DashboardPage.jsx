@@ -5,9 +5,11 @@ import ChatInterface from "../components/ChatInterface";
 import PlaylistDetail from "../components/PlaylistDetail";
 import PlayerQueue from "../components/PlayerQueue";
 import PlayerControls from "../components/PlayerControls";
+import PlaylistSelectionModal from "../components/PlaylistSelectionModal";
 import api from "../api";
 
 import { arrayMove } from "@dnd-kit/sortable";
+import toast from "react-hot-toast";
 
 const DashboardPage = () => {
   const [videoQueue, setVideoQueue] = useState([]);
@@ -22,6 +24,110 @@ const DashboardPage = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [loadingPlaylists, setLoadingPlaylists] = useState(true);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [videoToMove, setVideoToMove] = useState(null);
+
+  const handleOpenAddToPlaylistModal = (video) => {
+    setVideoToMove(video);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setVideoToMove(null);
+  };
+
+  const handleAddVideoToPlaylist = async (playlistId) => {
+    if (!videoToMove) return;
+
+    const promise = api.post(`/playlists/${playlistId}/items`, {
+      videoId: videoToMove.id,
+    });
+
+    try {
+      await toast.promise(promise, {
+        loading: `Adding "${videoToMove.title}"...`,
+        success: `Successfully added to playlist.`,
+        error: "Failed to add video to playlist.",
+      });
+
+      setPlaylists((prevPlaylists) =>
+        prevPlaylists.map((p) =>
+          p.id === playlistId ? { ...p, videoCount: p.videoCount + 1 } : p
+        )
+      );
+
+      if (selectedPlaylist && selectedPlaylist.id === playlistId) {
+        // If yes, fetch the new video's details and add it to the items list.
+        const newVideoDetails = await fetchVideoDetails([videoToMove.id]);
+        if (newVideoDetails.length > 0) {
+          setPlaylistItems((prevItems) => [...prevItems, newVideoDetails[0]]);
+        }
+      }
+    } catch (error) {
+      // console.error("Error caught by handleAddVideoToPlaylist:", error);
+    } finally {
+      handleCloseModal();
+    }
+  };
+
+  const handleRemoveVideoFromPlaylist = async (video) => {
+    if (!selectedPlaylist) return;
+
+    if (
+      window.confirm(
+        `Are you sure you want to remove "${video.title}" from this playlist?`
+      )
+    ) {
+      const promise = api.delete(
+        `/playlists/${selectedPlaylist.id}/items/${video.id}`
+      );
+
+      try {
+        await toast.promise(promise, {
+          loading: "Removing video...",
+          success: `"${video.title}" was removed.`,
+          error: "Failed to remove video.",
+        });
+
+        setPlaylistItems((prev) => prev.filter((item) => item.id !== video.id));
+
+        setPlaylists((prevPlaylists) =>
+          prevPlaylists.map((p) =>
+            p.id === selectedPlaylist.id
+              ? { ...p, videoCount: p.videoCount - 1 }
+              : p
+          )
+        );
+
+        // After success, update the UI state.
+        setPlaylistItems((prev) => prev.filter((item) => item.id !== video.id));
+        setPlaylists((prevPlaylists) =>
+          prevPlaylists.map((p) =>
+            p.id === selectedPlaylist.id
+              ? { ...p, videoCount: p.videoCount - 1 }
+              : p
+          )
+        );
+      } catch (error) {
+        // console.error("Error caught by handleRemoveVideoFromPlaylist:", error);
+      }
+    }
+  };
+
+  const handleOpenModalForCurrentVideo = () => {
+    // Find the currently playing video from the queue.
+    const currentVideo = videoQueue[currentVideoIndex];
+
+    if (currentVideo) {
+      // If a video is playing, call the existing function to open the modal.
+      handleOpenAddToPlaylistModal(currentVideo);
+    } else {
+      // If the queue is empty, provide feedback to the user.
+      toast.error("No video is currently playing.");
+    }
+  };
 
   useEffect(() => {
     const fetchPlaylists = async () => {
@@ -335,6 +441,8 @@ const DashboardPage = () => {
               isLoading={isLoadingItems}
               onPlayFromPlaylist={handlePlayFromPlaylist}
               onAddToQueue={handleAddToQueue}
+              onAddToPlaylist={handleOpenAddToPlaylistModal}
+              onRemoveFromPlaylist={handleRemoveVideoFromPlaylist}
             />
           </div>
         )}
@@ -364,6 +472,7 @@ const DashboardPage = () => {
               onMuteToggle={handleMuteToggle}
               isQueueOpen={isQueueOpen}
               onToggleQueue={toggleQueue}
+              onAddToPlaylist={handleOpenModalForCurrentVideo}
             />
           </div>
         </div>
@@ -392,6 +501,15 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+      {/* Render the modal conditionally */}
+      {isModalOpen && (
+        <PlaylistSelectionModal
+          playlists={playlists}
+          onSelect={handleAddVideoToPlaylist}
+          onClose={handleCloseModal}
+          videoTitle={videoToMove?.title}
+        />
+      )}
     </div>
   );
 };
