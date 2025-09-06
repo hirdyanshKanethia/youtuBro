@@ -1,5 +1,10 @@
 import React from "react";
-import { IoShuffle, IoClose } from "react-icons/io5";
+import { IoShuffle, IoTrashOutline } from "react-icons/io5";
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import QueueItem from "./QueueItem";
 
 const PlayerQueue = ({
@@ -7,6 +12,8 @@ const PlayerQueue = ({
   currentVideoIndex,
   onShuffle,
   onPlayFromQueue,
+  onDragEnd,
+  onClearQueue,
 }) => {
   return (
     <div className="h-full flex flex-col bg-gray-800 rounded-lg p-4">
@@ -20,24 +27,36 @@ const PlayerQueue = ({
             title="Shuffle Queue"
           >
             <IoShuffle size={20} />
-          </button>{" "}
+          </button>
+          <button
+            onClick={onClearQueue}
+            className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-700"
+            title="Clear Queue"
+          >
+            <IoTrashOutline size={20} />
+          </button>
         </div>
       </div>
 
       {/* List of Videos in the Queue */}
-      <div className="flex-grow overflow-y-auto hide-scrollbar">
-        <ul>
-          {queue.map((video, index) => (
-            <QueueItem
-              key={`${video.id}-${index}`}
-              video={video}
-              index={index}
-              isActive={index === currentVideoIndex}
-              onSelect={() => onPlayFromQueue(index)}
-            />
-          ))}
-        </ul>
-      </div>
+      <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <div className="flex-grow overflow-y-auto hide-scrollbar">
+          <SortableContext items={queue} strategy={verticalListSortingStrategy}>
+            <ul>
+              {queue.map((video, index) => (
+                <QueueItem
+                  key={video.id}
+                  id={video.id}
+                  video={video}
+                  index={index}
+                  isActive={index === currentVideoIndex}
+                  onSelect={() => onPlayFromQueue(index)}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </div>
+      </DndContext>
     </div>
   );
 };

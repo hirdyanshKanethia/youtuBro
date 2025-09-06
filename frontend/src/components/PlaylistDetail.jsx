@@ -7,7 +7,8 @@ const PlaylistDetail = ({
   items,
   isLoading,
   // onClose,
-  onPlayFromPlaylist
+  onPlayFromPlaylist,
+  onAddToQueue
 }) => {
   return (
     <div className="p-1 h-full flex flex-col bg-gray-800">
@@ -28,6 +29,7 @@ const PlaylistDetail = ({
                 key={video.id}
                 video={video}
                 onPlay={() => onPlayFromPlaylist(items, index)}
+                onAddToQueue={() => onAddToQueue(video)}
               />
             ))}
           </ul>

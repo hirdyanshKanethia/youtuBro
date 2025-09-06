@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { BsFillPlayFill, BsThreeDotsVertical } from "react-icons/bs";
 import DropdownMenu from "./DropdownMenu";
 
-const VideoItem = ({ video, onPlay }) => {
+const VideoItem = ({ video, onPlay, onAddToQueue }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 

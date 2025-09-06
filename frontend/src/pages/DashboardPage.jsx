@@ -7,6 +7,8 @@ import PlayerQueue from "../components/PlayerQueue";
 import PlayerControls from "../components/PlayerControls";
 import api from "../api";
 
+import { arrayMove } from "@dnd-kit/sortable";
+
 const DashboardPage = () => {
   const [videoQueue, setVideoQueue] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
@@ -37,6 +39,26 @@ const DashboardPage = () => {
     };
     fetchPlaylists();
   }, []);
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      setVideoQueue((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        const newQueue = arrayMove(items, oldIndex, newIndex);
+
+        // Update the current video index after reordering
+        const currentVideoId = items[currentVideoIndex].id;
+        setCurrentVideoIndex(
+          newQueue.findIndex((item) => item.id === currentVideoId)
+        );
+
+        return newQueue;
+      });
+    }
+  };
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -109,6 +131,21 @@ const DashboardPage = () => {
 
   const handlePlayFromQueue = (index) => {
     setCurrentVideoIndex(index);
+  };
+
+  const handleClearQueue = () => {
+    // No need to clear if there's only one or zero videos.
+    if (videoQueue.length <= 1) return;
+
+    // Get the video that is currently playing.
+    const currentVideo = videoQueue[currentVideoIndex];
+
+    // Set the queue to a new array containing only that video.
+    setVideoQueue([currentVideo]);
+
+    // Reset the index to 0, as it's now the only item.
+    setCurrentVideoIndex(0);
+    // console.log("Queue cleared except for the current video.");
   };
 
   const handlePlaylistSelect = async (playlist) => {
@@ -297,6 +334,7 @@ const DashboardPage = () => {
               items={playlistItems}
               isLoading={isLoadingItems}
               onPlayFromPlaylist={handlePlayFromPlaylist}
+              onAddToQueue={handleAddToQueue}
             />
           </div>
         )}
@@ -348,6 +386,8 @@ const DashboardPage = () => {
               currentVideoIndex={currentVideoIndex}
               onShuffle={handleShuffleQueue}
               onPlayFromQueue={handlePlayFromQueue}
+              onDragEnd={handleDragEnd}
+              onClearQueue={handleClearQueue}
             />
           </div>
         </div>
