@@ -1,6 +1,6 @@
-// backend/services/playlistBuilder.js
+// THIS FILE CONTAINS METHODS EXCLUSIVE TO BUILDING A PLAYLIST
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-// const OpenAI = require("openai");
 
 class PlaylistBuilder {
   constructor(geminiApiKey, youtubeService) {
@@ -18,7 +18,6 @@ class PlaylistBuilder {
 
       console.log("Raw response: ", responseText);
 
-      // Find and clean the JSON block from the model's text response.
       const jsonMatch = responseText.match(/\{[\s\S]*\}|"[^"]*"/);
       if (!jsonMatch) {
         throw new Error("No JSON object found in the model's response.");
@@ -47,7 +46,9 @@ class PlaylistBuilder {
     }
   }
 
-  // --- Roadmap Playlist Methods ---
+  // **************************************************************************************
+  // METHODS FOR PLAYLIST BUILDING WITH A DEVISED ROADMAP
+  // **************************************************************************************
 
   /**
    * Orchestrates the creation of a playlist based on a generated roadmap.
@@ -56,7 +57,6 @@ class PlaylistBuilder {
   async _executeRoadmapPlaylist(playlistData) {
     const params = playlistData.parameters;
 
-    // 1. Generate the roadmap and a specific query for each step
     const roadmapResult = await this._generateRoadmapAndQueries(params);
     if (!roadmapResult || roadmapResult.roadmap.length === 0) {
       return {
@@ -67,8 +67,6 @@ class PlaylistBuilder {
 
     const queries = roadmapResult.roadmap.map((step) => step.query);
 
-    // 2. Create the empty playlist on YouTube
-    // We can format the roadmap as the playlist description for a nice touch.
     const playlistDescription = roadmapResult.roadmap
       .map((step) => `${step.step}. ${step.title}`)
       .join("\n");
@@ -82,7 +80,6 @@ class PlaylistBuilder {
       return { success: false, message: "Failed to create YouTube playlist." };
     }
 
-    // 3. Search for ONE video for each query
     console.log(
       `Searching for ${queries.length} specific videos for the roadmap...`
     );
@@ -101,7 +98,6 @@ class PlaylistBuilder {
       };
     }
 
-    // 4. Add the collected videos to the new playlist
     await this.youtubeService.addVideosToPlaylist(newPlaylist.id, videoIds);
 
     console.log("Roadmap playlist creation completed!");
@@ -121,7 +117,7 @@ class PlaylistBuilder {
    * @private
    */
   async _generateRoadmapAndQueries(playlistParams) {
-    const { playlist_name, description } = playlistParams; // vid_count is no longer needed here
+    const { playlist_name, description } = playlistParams;
 
     const prompt = `
       You are an expert curriculum and content strategist. Your task is to create a step-by-step learning roadmap for the given topic. For each step, you must also generate a concise, high-quality YouTube search query that would find a good introductory video for that topic.
@@ -195,6 +191,10 @@ class PlaylistBuilder {
     }
   }
 
+  // **************************************************************************************
+  // GENERAL PLAYLIST BUILDING AND YOUTUBE SEARCHING METHODS
+  // **************************************************************************************
+
   /**
    * UPDATED METHOD: The main orchestrator method with the new, simpler logic.
    * @param {object} playlistData
@@ -208,13 +208,11 @@ class PlaylistBuilder {
     const params = playlistData.parameters;
     console.log("Starting playlist creation process...");
 
-    // 1. Generate ONE search query using the LLM
     const singleQuery = await this._generateSingleSearchQuery(params);
     if (!singleQuery) {
       return { success: false, message: "Could not generate a search query." };
     }
 
-    // 2. Create the empty playlist on YouTube
     const newPlaylist = await this.youtubeService.createPlaylist(
       params.playlist_name,
       params.description,
@@ -224,7 +222,6 @@ class PlaylistBuilder {
       return { success: false, message: "Failed to create YouTube playlist." };
     }
 
-    // 3. Search for multiple videos using the single query
     const videoIds = await this.youtubeService.searchForVideos(
       singleQuery,
       params.vid_count
@@ -237,7 +234,6 @@ class PlaylistBuilder {
       };
     }
 
-    // 4. Add the collected videos to the new playlist
     await this.youtubeService.addVideosToPlaylist(newPlaylist.id, videoIds);
 
     console.log("Playlist creation process completed!");
@@ -284,7 +280,6 @@ class PlaylistBuilder {
     try {
       const parsed = await this._callModel(prompt);
 
-      // Now that the format is guaranteed, we can directly access .query
       const query = parsed.query;
 
       if (!query) {

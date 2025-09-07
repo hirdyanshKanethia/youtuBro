@@ -6,7 +6,6 @@ const supabase = require("../services/supabase");
 
 const router = express.Router();
 
-// GET /videos/details?ids=videoId1,videoId2,...
 router.get("/details", authMiddleware, async (req, res) => {
   try {
     const { id: userId } = req.user;

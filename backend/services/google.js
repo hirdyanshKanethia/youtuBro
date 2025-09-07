@@ -1,3 +1,5 @@
+// FILE TO HANDLE OAuth RELATED OPERATIONS
+
 const { google } = require("googleapis");
 const supabase = require("./supabase");
 
@@ -23,7 +25,7 @@ async function saveTokens(userId, tokens) {
 
   const { data, error } = await supabase.from("tokens").upsert(
     {
-      user_id: userId, // e.g. Supabase auth user ID
+      user_id: userId,
       access_token,
       refresh_token,
       scope,
@@ -31,7 +33,7 @@ async function saveTokens(userId, tokens) {
       expiry_date,
     },
     { onConflict: "user_id" }
-  ); // update if exists
+  ); 
 
   if (error) {
     console.error("Error saving tokens:");
@@ -70,11 +72,8 @@ async function getAuthClient(userId) {
         : null,
     });
 
-    // The google-auth-library can handle refreshing automatically
-    // You can listen for the 'tokens' event to save the new tokens
     oauth2Client.on("tokens", (newTokens) => {
       if (newTokens.refresh_token) {
-        // A new refresh token is sometimes issued, save it.
         console.log("New refresh token received, saving...");
         saveTokens(userId, { ...tokens, ...newTokens });
       }
@@ -83,7 +82,6 @@ async function getAuthClient(userId) {
     return oauth2Client;
   } catch (error) {
     console.error("Failed to get auth client for user:", userId, error.message);
-    // Return null or throw a custom error to be handled by your route
     return null;
   }
 }

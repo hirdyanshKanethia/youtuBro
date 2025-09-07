@@ -1,4 +1,5 @@
-// const OpenAI = require("openai");
+// FIRST MODEL TO PROCESS ON THE USER PROMPT AND CLASSIFY IT AS EITHER OF THE AVAILABLE OPERATIONS
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 class TaskClassifier {
@@ -28,12 +29,10 @@ Respond ONLY with a JSON object in this exact format:
 `;
 
     try {
-      // Use the Google AI client's generateContent method.
       const result = await this.model.generateContent(classificationPrompt);
       const response = await result.response;
       let text = response.text();
 
-      // Manually find and parse the JSON from the text response.
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error("No JSON found in response");

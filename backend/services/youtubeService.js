@@ -1,10 +1,9 @@
-// backend/services/youtubeService.js
+// THIS FILE CONTAINS METHODS TO INTERACT WITH THE YOUTUBE API IN PREDEFINED MANNERS
 
 const { google } = require("googleapis");
 
 class YouTubeService {
   /**
-   * The constructor now accepts an authenticated oAuth2Client.
    * @param {OAuth2Client} oAuth2Client - A pre-authenticated Google OAuth2 client.
    */
   constructor(oAuth2Client) {
@@ -13,7 +12,6 @@ class YouTubeService {
         "YouTubeService requires an authenticated OAuth2 client."
       );
     }
-    // Create a new YouTube API client with the user's authentication
     this.youtube = google.youtube({ version: "v3", auth: oAuth2Client });
   }
 
@@ -32,9 +30,8 @@ class YouTubeService {
         part: "snippet",
         q: query,
         type: "video",
-        // videoDuration: 'medium',
         videoDefinition: "high",
-        maxResults: count, // Fetch multiple results
+        maxResults: count,
       });
 
       const items = response.data.items;
@@ -54,9 +51,6 @@ class YouTubeService {
     }
   }
 
-  /**
-   * REAL: Creates a new playlist.
-   */
   async createPlaylist(name, description, privacy) {
     console.log(`[API] Creating playlist: "${name}"...`);
     try {
@@ -84,15 +78,12 @@ class YouTubeService {
         url: `https://www.youtube.com/playlist?list=${playlist.id}`,
       };
     } catch (error) {
-      // This block will catch the error and give you details
       console.error("[API ERROR] Failed to create playlist.");
       if (error.response && error.response.data) {
-        // Log the specific error details from the Google API response
         console.error("DETAILS:", JSON.stringify(error.response.data, null, 2));
       } else {
         console.error("FULL ERROR:", error.message);
       }
-      // Re-throw the error so the main process knows it failed
       throw new Error("Playlist creation failed in YouTubeService.");
     }
   }
@@ -110,7 +101,6 @@ class YouTubeService {
         part: "snippet",
         q: query,
         type: "video",
-        // videoDuration: 'medium',
         videoDefinition: "high",
         maxResults: 1,
       });
@@ -168,7 +158,7 @@ class YouTubeService {
       const response = await this.youtube.playlists.list({
         part: "snippet",
         mine: true,
-        maxResults: 50, // You can fetch up to 50 playlists at a time
+        maxResults: 50,
       });
 
       const playlists = response.data.items.map((item) => ({
@@ -183,7 +173,7 @@ class YouTubeService {
         "[API ERROR] Failed to fetch user playlists:",
         error.message
       );
-      return []; // Return an empty array on failure
+      return [];
     }
   }
 
@@ -220,21 +210,20 @@ class YouTubeService {
     }
     try {
       const response = await this.youtube.videos.list({
-        part: "snippet,contentDetails", // Requesting snippet (title, thumbnail) and contentDetails (duration)
-        id: videoIds.join(","), // Combine all IDs into a single, comma-separated string
+        part: "snippet,contentDetails",
+        id: videoIds.join(","),
       });
 
-      // Map the API response to a cleaner format for your frontend
       return response.data.items.map((item) => ({
         id: item.id,
         title: item.snippet.title,
         thumbnail: item.snippet.thumbnails.default.url,
-        duration: item.contentDetails.duration, // e.g., "PT5M3S"
+        duration: item.contentDetails.duration,
         url: `https://www.youtube.com/watch?v=${item.id}`,
       }));
     } catch (error) {
       console.error("[API ERROR] Failed to get video details:", error.message);
-      return []; // Return an empty array on failure
+      return [];
     }
   }
 
@@ -246,12 +235,11 @@ class YouTubeService {
     console.log("[API] Fetching user playlists...");
     try {
       const response = await this.youtube.playlists.list({
-        part: "snippet,contentDetails", // Get snippet (title, etc.) and contentDetails (itemCount)
+        part: "snippet,contentDetails",
         mine: true,
-        maxResults: 50, // You can fetch up to 50 playlists at a time
+        maxResults: 50,
       });
 
-      // Map the response to a clean format for your frontend
       const playlists = response.data.items.map((item) => ({
         id: item.id,
         name: item.snippet.title,
@@ -266,7 +254,7 @@ class YouTubeService {
         "[API ERROR] Failed to fetch user playlists:",
         error.message
       );
-      return []; // Return an empty array on failure
+      return [];
     }
   }
 
@@ -282,33 +270,28 @@ class YouTubeService {
 
     try {
       do {
-        // Make the API request for a page of results.
         const response = await this.youtube.playlistItems.list({
           part: "snippet",
           playlistId: playlistId,
-          maxResults: 50, // Request the maximum allowed per page
-          pageToken: nextPageToken, // On subsequent requests, provide the token
+          maxResults: 50,
+          pageToken: nextPageToken,
         });
 
-        // Add the fetched video IDs to our main list.
         const videoIds = response.data.items.map(
           (item) => item.snippet.resourceId.videoId
         );
         allVideoIds = allVideoIds.concat(videoIds);
 
-        // Get the token for the next page. If it doesn't exist, the loop will end.
         nextPageToken = response.data.nextPageToken;
-      } while (nextPageToken); // Continue looping as long as there's a next page
+      } while (nextPageToken);
 
       console.log(`[API] Found a total of ${allVideoIds.length} items.`);
       return allVideoIds;
     } catch (error) {
       console.error("[API ERROR] Failed to fetch all playlist items:", error);
-      return []; // Return whatever was fetched before the error
+      return [];
     }
   }
-
-  // ... (inside the YouTubeService class)
 
   /**
    * Adds a single video to a specified playlist.
@@ -333,12 +316,19 @@ class YouTubeService {
       });
       return { success: true, message: "Video added successfully." };
     } catch (error) {
-      console.error(
-        "[API ERROR] Failed to add video to playlist:",
-        error
-      );
+      console.error("[API ERROR] Failed to add video to playlist:", error);
       return { success: false, message: "Failed to add video." };
     }
+  }
+
+  async addVideosToPlaylist(playlistId, videoIds) {
+    console.log(
+      `[API] Adding ${videoIds.length} videos to playlist ${playlistId}...`
+    );
+    for (const videoId of videoIds) {
+      await this.addVideoToPlaylist(playlistId, videoId);
+    }
+    return { success: true, message: `${videoIds.length} videos added.` };
   }
 
   /**
@@ -353,11 +343,9 @@ class YouTubeService {
       `[API] Attempting to remove video ${videoId} from playlist ${playlistId}...`
     );
     try {
-      // Step 1: Find the playlistItemId for the given videoId.
       let playlistItemId = null;
       let nextPageToken = null;
 
-      // Loop through all pages of the playlist to find the video.
       do {
         const response = await this.youtube.playlistItems.list({
           part: "snippet",
@@ -372,7 +360,7 @@ class YouTubeService {
 
         if (foundItem) {
           playlistItemId = foundItem.id;
-          break; // Exit the loop once the item is found
+          break;
         }
 
         nextPageToken = response.data.nextPageToken;
@@ -382,7 +370,6 @@ class YouTubeService {
         throw new Error("Video not found in this playlist.");
       }
 
-      // Step 2: Delete the item using its playlistItemId.
       await this.youtube.playlistItems.delete({
         id: playlistItemId,
       });
@@ -395,6 +382,34 @@ class YouTubeService {
         error.message
       );
       return { success: false, message: "Failed to remove video." };
+    }
+  }
+
+  async removeVideosFromPlaylist(playlistId, videoIds) {
+    console.log(
+      `[API] Removing ${videoIds.length} videos from playlist ${playlistId}...`
+    );
+    for (const videoId of videoIds) {
+      await this.removeVideoFromPlaylist(playlistId, videoId);
+    }
+    return { success: true, message: `${videoIds.length} videos removed.` };
+  }
+
+  async renamePlaylist(playlistId, newTitle) {
+    try {
+      await this.youtube.playlists.update({
+        part: "snippet",
+        requestBody: {
+          id: playlistId,
+          snippet: {
+            title: newTitle,
+          },
+        },
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to rename playlist:", error);
+      return { success: false };
     }
   }
 }

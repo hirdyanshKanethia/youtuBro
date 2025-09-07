@@ -1,15 +1,15 @@
-// backend/models/actionHandlers.js
-
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-// const OpenAI = require("openai");
 
 class ActionHandlers {
-  constructor(geminiApiKey) {
-    // Re-initialize the Google Generative AI client.
+  constructor(geminiApiKey, youtubeService) {
     this.genAI = new GoogleGenerativeAI(geminiApiKey);
     this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    this.youtubeService = youtubeService;
   }
 
+  // **************************************************************************************
+  // Single helper function to call ai model with the provided prompt and return cleaned json
+  // **************************************************************************************
   async _callModel(prompt) {
     let responseText;
     try {
@@ -17,7 +17,6 @@ class ActionHandlers {
       const response = await result.response;
       responseText = response.text();
 
-      // Find and clean the JSON block from the model's response.
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error("No JSON object found in the model's response.");
@@ -32,6 +31,9 @@ class ActionHandlers {
     }
   }
 
+  // **************************************************************************************
+  // Handler function for make_playlist flow of the mcp server
+  // **************************************************************************************
   async handleMakePlaylist(userPrompt) {
     const prompt = `
     You are a playlist creation assistant. Your job is to extract structured parameters from the user's request. If a parameter cannot be confidently determined, return null.
@@ -87,12 +89,9 @@ class ActionHandlers {
     }
   }
 
-  /**
-   * Simplified handler to identify a playlist for removal in a single step.
-   * @param {string} userPrompt - The user's natural language request.
-   * @param {Array<Object>} userPlaylists - An array of the user's playlists.
-   * @returns {Promise<Object>}
-   */
+  // **************************************************************************************
+  // Handler function for the remove_playlist flow of the mcp server
+  // **************************************************************************************
   async handleRemovePlaylist(userPrompt, userPlaylists) {
     if (!userPlaylists || userPlaylists.length === 0) {
       return {
@@ -151,52 +150,88 @@ class ActionHandlers {
     }
   }
 
-  async handleManagePlaylist(userPrompt) {
+  // **************************************************************************************
+  // Handler function for the manage_playlist flow of the mcp server
+  // **************************************************************************************
+  async handleManagePlaylist(userPrompt, userPlaylists) {
     const prompt = `
-You are a playlist management assistant. Extract the required parameters from the user's message.
+    You are a playlist management triage assistant. Your first job is to identify which of the user's playlists they want to manage and the specific action they want to take.
 
-Required parameters:
-- playlist_identifier: The playlist name or ID to modify
-- management_action: "add_songs", "remove_songs", "rename", or "change_description"
+    CONTEXT:
+    The user has the following playlists. Your decision MUST be one of these.
+    Playlists List:
+    ${JSON.stringify(userPlaylists, null, 2)}
 
-Conditional parameters (based on management_action):
-- If add_songs: songs_to_add (array of song names/artists)
-- If remove_songs: songs_to_remove (array of song names/artists)
-- If rename: new_name (string)
-- If change_description: new_description (string)
+    USER MESSAGE:
+    """${userPrompt}"""
 
-User message: "${userPrompt}"
+    TASK:
+    Identify the target playlist and the primary management action.
 
-Respond with JSON in this format:
-{
-  "parameters": {
-    "playlist_identifier": "extracted playlist name/id or null",
-    "management_action": "add_songs|remove_songs|rename|change_description or null",
-    "songs_to_add": ["array of songs"] or null,
-    "songs_to_remove": ["array of songs"] or null,
-    "new_name": "new playlist name or null",
-    "new_description": "new description or null"
-  },
-  "missing_required": ["list of missing required parameters"],
-  "ready_to_execute": boolean,
-  "follow_up_question": "question to ask user if parameters are missing"
-}
-`;
+    Actions: ["add_videos", "remove_videos", "rename_playlist"]
+
+    Respond ONLY with valid JSON in the following format:
+    {
+      "playlist_to_manage": {
+        "id": "string, from the list provided",
+        "name": "string, from the list provided"
+      } or null,
+      "management_action": "add_videos|remove_videos|rename_playlist" or null
+    }
+    `;
 
     try {
-      return await this._callModel(prompt);
+      const triageResult = await this._callModel(prompt);
+
+      if (!triageResult.playlist_to_manage || !triageResult.management_action) {
+        return {
+          success: false,
+          ready_to_execute: false,
+          message:
+            "Sorry, I'm not sure which playlist you want to change or what you want to do.",
+        };
+      }
+
+      // Based on the action, delegate to a specialized agent
+      switch (triageResult.management_action) {
+        case "add_videos":
+          return this._handleAddVideos(
+            userPrompt,
+            triageResult.playlist_to_manage
+          );
+        case "remove_videos":
+          // Removing videos requires knowing what's already in the playlist
+          const items = await this.youtubeService.getPlaylistItems(
+            triageResult.playlist_to_manage.id
+          );
+          const itemDetails = await this.youtubeService.getVideoDetails(items);
+          return this._handleRemoveVideos(
+            userPrompt,
+            triageResult.playlist_to_manage,
+            itemDetails
+          );
+        case "rename_playlist":
+          return this._handleRenamePlaylist(
+            userPrompt,
+            triageResult.playlist_to_manage
+          );
+        // Add a case for update_description if needed
+        default:
+          return {
+            success: false,
+            ready_to_execute: false,
+            message: "That action isn't supported yet.",
+          };
+      }
     } catch (error) {
       console.error("Manage playlist handler error:", error);
       return { error: error.message, ready_to_execute: false };
     }
   }
 
-  /**
-   * UPDATED: Extracts raw parameters for a video to be played.
-   * This function's only job is to understand the user's intent.
-   * @param {string} userPrompt - The user's natural language request.
-   * @returns {Promise<Object>}
-   */
+  // **************************************************************************************
+  // Handler function for the play_video flow of the mcp server
+  // **************************************************************************************
   async handlePlayVideo(userPrompt) {
     const prompt = `
     You are an expert at understanding user requests to watch YouTube videos. Your job is to extract raw, structured search parameters from the user's message. Do NOT create the final search query yourself.
@@ -236,6 +271,119 @@ Respond with JSON in this format:
         };
       }
       return { success: true, ...parsed };
+    } catch (error) {
+      console.error("Play video handler error:", error);
+      return { success: false, error: error.message, ready_to_execute: false };
+    }
+  }
+
+  // **************************************************************************************
+  // Helper functions for the above flows
+  // **************************************************************************************
+  
+  async _handleAddVideos(userPrompt, playlist) {
+    const prompt = `
+    You are a YouTube search query expert. A user wants to add videos to their playlist.
+
+    PLAYLIST CONTEXT:
+    - Name: "${playlist.name}"
+    - Description: "${playlist.description || "No description provided."}"
+
+    USER MESSAGE (what to add):
+    """${userPrompt}"""
+
+    TASK:
+    Based on the playlist's context and the user's message, generate a concise YouTube search query to find the videos they want to add. Also, determine how many videos to add (default to 5 if not specified).
+
+    Respond ONLY with valid JSON:
+    { "search_query": "string", "video_count": number }
+    `;
+    try {
+      const result = await this._callModel(prompt);
+      return {
+        success: true,
+        ready_to_execute: true,
+        action: "manage_playlist",
+        parameters: {
+          management_action: "add_videos",
+          playlist_to_manage: playlist,
+          search_query: result.search_query,
+          video_count: result.video_count,
+        },
+      };
+    } catch (error) {
+      console.error("Add videos handler error:", error);
+      return { success: false, error: error.message, ready_to_execute: false };
+    }
+  }
+
+  async _handleRemoveVideos(userPrompt, playlist, currentVideos) {
+    const prompt = `
+    You are a playlist curation assistant. A user wants to remove videos from their playlist "${
+      playlist.name
+    }".
+    Analyze the user's message and identify which of the videos from the provided list should be removed.
+
+    VIDEOS CURRENTLY IN THE PLAYLIST:
+    ${JSON.stringify(
+      currentVideos.map((v) => ({ id: v.id, title: v.title })),
+      null,
+      2
+    )}
+
+    USER MESSAGE:
+    """${userPrompt}"""
+
+    TASK:
+    Return a list of the video IDs that should be removed.
+
+    Respond ONLY with valid JSON:
+    { "videos_to_remove": ["id1", "id2", ...] }
+    `;
+    try {
+      const result = await this._callModel(prompt);
+      return {
+        success: true,
+        ready_to_execute: true,
+        action: "manage_playlist",
+        parameters: {
+          management_action: "remove_videos",
+          playlist_to_manage: playlist,
+          video_ids_to_remove: result.videos_to_remove,
+        },
+      };
+    } catch (error) {
+      console.error("Play video handler error:", error);
+      return { success: false, error: error.message, ready_to_execute: false };
+    }
+  }
+
+  async _handleRenamePlaylist(userPrompt, playlist) {
+    const prompt = `
+    A user wants to rename their playlist "${playlist.name}".
+    Extract the new name from their message.
+
+    USER MESSAGE:
+    """${userPrompt}"""
+
+    TASK:
+    Return the new playlist name.
+
+    Respond ONLY with valid JSON:
+    { "new_name": "string" }
+    `;
+    try {
+      const result = await this._callModel(prompt);
+      return {
+        success: true,
+        ready_to_execute: true,
+        action: "manage_playlist",
+        parameters: {
+          management_action: "rename_playlist",
+          playlist_to_manage: playlist,
+          new_name: result.new_name,
+        },
+      };
     } catch (error) {
       console.error("Play video handler error:", error);
       return { success: false, error: error.message, ready_to_execute: false };

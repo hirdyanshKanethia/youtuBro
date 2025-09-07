@@ -1,3 +1,5 @@
+// ROUTES TO HANDLE CRUD OPERATIONS ON USER'S PLAYLISTS
+
 const express = require("express");
 const { google } = require("googleapis");
 const supabase = require("../services/supabase");
@@ -6,13 +8,10 @@ const YouTubeService = require("../services/youtubeService");
 
 const router = express.Router();
 
-// GET /api/playlists/
-// Fetches all playlists for the authenticated user.
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const { id: userId } = req.user;
 
-    // 1. Fetch user's tokens from Supabase (same as in chat.js)
     const { data: tokens, error } = await supabase
       .from("tokens")
       .select("access_token, refresh_token")
@@ -24,7 +23,6 @@ router.get("/", authMiddleware, async (req, res) => {
       return res.status(401).json({ error: "Could not retrieve user tokens." });
     }
 
-    // 2. Create an authenticated YouTube service instance
     const oAuth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET
@@ -35,10 +33,8 @@ router.get("/", authMiddleware, async (req, res) => {
     });
     const youtubeService = new YouTubeService(oAuth2Client);
 
-    // 3. Call the service to get the playlists
     const playlists = await youtubeService.getUsersPlaylists();
 
-    // 4. Send the playlists back to the client
     res.json({ success: true, playlists: playlists });
   } catch (error) {
     console.error("Get playlists route error:", error);
@@ -48,14 +44,11 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/playlists/:playlistId/items
-// Fetches all video IDs for a specific playlist.
 router.get("/:playlistId/items", authMiddleware, async (req, res) => {
   try {
     const { id: userId } = req.user;
-    const { playlistId } = req.params; // Get playlistId from the URL parameter
+    const { playlistId } = req.params; 
 
-    // ... (same logic as the other route to create an authenticated youtubeService)
     const { data: tokens, error } = await supabase
       .from("tokens")
       .select("...")
@@ -75,7 +68,6 @@ router.get("/:playlistId/items", authMiddleware, async (req, res) => {
     const youtubeService = new YouTubeService(oAuth2Client);
     // ...
 
-    // Call the new service method with the playlistId from the request
     const videoIds = await youtubeService.getPlaylistItems(playlistId);
 
     res.json({ success: true, videoIds: videoIds });
@@ -90,7 +82,7 @@ router.get("/:playlistId/items", authMiddleware, async (req, res) => {
 router.delete("/:playlistId", authMiddleware, async (req, res) => {
   try {
     const { id: userId } = req.user;
-    const { playlistId } = req.params; // Get playlistId from the URL parameter
+    const { playlistId } = req.params; 
 
     if (!playlistId) {
       return res
@@ -98,7 +90,6 @@ router.delete("/:playlistId", authMiddleware, async (req, res) => {
         .json({ success: false, error: "Playlist ID is required." });
     }
 
-    // Create an authenticated youtubeService instance (same as in other routes)
     const { data: tokens, error } = await supabase
       .from("tokens")
       .select("...")
@@ -117,7 +108,6 @@ router.delete("/:playlistId", authMiddleware, async (req, res) => {
     });
     const youtubeService = new YouTubeService(oAuth2Client);
 
-    // Call the service to delete the playlist
     const deleteResult = await youtubeService.deletePlaylist(playlistId);
 
     if (deleteResult.success) {
@@ -137,7 +127,7 @@ router.post("/:playlistId/items", authMiddleware, async (req, res) => {
   try {
     const { id: userId } = req.user;
     const { playlistId } = req.params;
-    const { videoId } = req.body; // Get videoId from the request body
+    const { videoId } = req.body; 
 
     if (!videoId) {
       return res
@@ -145,7 +135,6 @@ router.post("/:playlistId/items", authMiddleware, async (req, res) => {
         .json({ success: false, error: "Video ID is required." });
     }
 
-    // Create an authenticated youtubeService instance
     const { data: tokens, error } = await supabase
       .from("tokens")
       .select("...")
@@ -180,7 +169,6 @@ router.delete(
       const { id: userId } = req.user;
       const { playlistId, videoId } = req.params;
 
-      // Create an authenticated youtubeService instance
       const { data: tokens, error } = await supabase
         .from("tokens")
         .select("...")

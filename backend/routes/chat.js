@@ -12,7 +12,10 @@ const { logActionToDB } = require("../utils/dbLogger");
 const router = express.Router();
 
 const classifier = new TaskClassifier(process.env.GEMINI_API_KEY);
-const actionHandlers = new ActionHandlers(process.env.GEMINI_API_KEY);
+
+// **************************************************************************************
+// ROUTES
+// **************************************************************************************
 
 // Main router for handling all chat prompts
 router.post("/", authMiddleware, async (req, res) => {
@@ -32,7 +35,6 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    // 1. Fetch user's tokens from Supabase to create an authenticated client
     const { data: tokens, error } = await supabase
       .from("tokens")
       .select("access_token, refresh_token")
@@ -46,7 +48,6 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    // 2. Create authenticated YouTube service for this specific user
     const oAuth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET
@@ -57,7 +58,11 @@ router.post("/", authMiddleware, async (req, res) => {
     });
     const youtubeService = new YouTubeService(oAuth2Client);
 
-    // 3. Get parameters from the prompt using the appropriate handler
+    const actionHandlers = new ActionHandlers(
+      process.env.GEMINI_API_KEY,
+      youtubeService
+    );
+
     let handlerResult;
     switch (classification.action) {
       case "make_playlist":
@@ -65,7 +70,6 @@ router.post("/", authMiddleware, async (req, res) => {
         break;
 
       case "remove_playlist": {
-        // Using block scope for clarity
         const userPlaylists = await youtubeService.getUsersPlaylists();
         handlerResult = await actionHandlers.handleRemovePlaylist(
           prompt,
@@ -74,17 +78,16 @@ router.post("/", authMiddleware, async (req, res) => {
         break;
       }
 
-      // case "manage_playlist": {
-      //   // Add this case
-      //   const userPlaylists = await youtubeService.getUsersPlaylists();
-      //   handlerResult = await actionHandlers.handleManagePlaylist(
-      //     prompt,
-      //     userPlaylists
-      //   );
-      //   break;
-      // }
+      case "manage_playlist": {
+        const userPlaylists = await youtubeService.getUsersPlaylists();
+        handlerResult = await actionHandlers.handleManagePlaylist(
+          prompt,
+          userPlaylists
+        );
+        break;
+      }
 
-      case "play_video": // And this case
+      case "play_video":
         handlerResult = await actionHandlers.handlePlayVideo(prompt);
         break;
 
@@ -92,7 +95,6 @@ router.post("/", authMiddleware, async (req, res) => {
         return res.json({ success: false, message: "Unsupported action." });
     }
 
-    // 4. If the handler is ready, execute the action. Otherwise, return its message.
     if (handlerResult.ready_to_execute) {
       const executionResult = await executeAction(
         classification.action,
@@ -103,14 +105,13 @@ router.post("/", authMiddleware, async (req, res) => {
       if (
         executionResult.success &&
         executionResult.action_message &&
-        classification.action != "play_video"
+        classification.action !== "play_video"
       ) {
         await logActionToDB(userId, executionResult.action_message);
       }
 
       return res.json(executionResult);
     } else {
-      // This handles cases where the AI couldn't figure out what to do
       return res.json({
         success: false,
         needs_more_info: true,
@@ -123,6 +124,10 @@ router.post("/", authMiddleware, async (req, res) => {
     res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
+
+// **************************************************************************************
+// HELPER FUNCTION TO FINALLY EXECUTE THE USER DESIRED ACTION
+// **************************************************************************************
 
 /**
  * Executes the final action (e.g., creating or deleting a playlist)
@@ -201,24 +206,66 @@ async function executeAction(action, handlerResult, youtubeService) {
         success: true,
         action: "play",
         message: `Now playing videos about ${searchQuery}.`,
-        videos: videos, // The array of video objects for the queue
+        videos: videos,
         action_message: `Agent action: User requested to play videos. Synthesized query: "${searchQuery}". Found ${videos.length} videos.`,
       };
     }
 
-    // case "manage_playlist": {
-    //   // Add this case
-    //   const params = handlerResult.parameters;
-    //   console.log("Executing manage_playlist with params:", params);
-    //   // Here you would add a nested switch or if/else for the specific management_action
-    //   // This is a placeholder for the logic you will build
-    //   // TODO: Implement the actual YouTube API calls for renaming, adding songs, etc.
-    //   return {
-    //     success: true,
-    //     message: `Successfully performed '${params.management_action}' on the playlist. (This is a placeholder - no real action was taken).`,
-    //     action_message: `Agent action: Performed '${params.management_action}' on playlist '${params.playlist_identifier}'.`,
-    //   };
-    // }
+    case "manage_playlist": {
+      const params = handlerResult.parameters;
+      const playlistBuilder = new PlaylistBuilder(
+        process.env.GEMINI_API_KEY,
+        youtubeService
+      );
+
+      switch (params.management_action) {
+        case "add_videos":
+          const videoIds = await youtubeService.searchForVideos(
+            params.search_query,
+            params.video_count
+          );
+          if (!videoIds || videoIds.length === 0) {
+            return {
+              success: false,
+              message: `Could not find videos for "${params.search_query}"`,
+            };
+          }
+          await youtubeService.addVideosToPlaylist(
+            params.playlist_to_manage.id,
+            videoIds
+          );
+          return {
+            success: true,
+            message: `Added ${videoIds.length} videos to "${params.playlist_to_manage.name}".`,
+            action_message: `Agent action: Added ${videoIds.length} videos to playlist "${params.playlist_to_manage.name}".`,
+          };
+
+        case "remove_videos":
+          await youtubeService.removeVideosFromPlaylist(
+            params.playlist_to_manage.id,
+            params.video_ids_to_remove
+          );
+          return {
+            success: true,
+            message: `Removed ${params.video_ids_to_remove.length} videos from "${params.playlist_to_manage.name}".`,
+            action_message: `Agent action: Removed ${params.video_ids_to_remove.length} videos from playlist "${params.playlist_to_manage.name}".`,
+          };
+
+        case "rename_playlist":
+          await youtubeService.renamePlaylist(
+            params.playlist_to_manage.id,
+            params.new_name
+          );
+          return {
+            success: true,
+            message: `Renamed playlist to "${params.new_name}".`,
+            action_message: `Agent action: Renamed playlist "${params.playlist_to_manage.name}" to "${params.new_name}".`,
+          };
+
+        default:
+          return { success: false, message: "Unsupported management action." };
+      }
+    }
 
     default:
       return {
