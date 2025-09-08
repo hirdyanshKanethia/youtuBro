@@ -10,7 +10,8 @@ const PlaylistDetail = ({
   onPlayFromPlaylist,
   onAddToQueue,
   onAddToPlaylist,
-  onRemoveFromPlaylist
+  onRemoveFromPlaylist,
+  onPlayNext
 }) => {
   return (
     <div className="p-1 h-full flex flex-col bg-gray-800">
@@ -34,6 +35,7 @@ const PlaylistDetail = ({
                 onAddToQueue={() => onAddToQueue(video)}
                 onAddToPlaylist={() => onAddToPlaylist(video)}
                 onRemoveFromPlaylist={() => onRemoveFromPlaylist(video)}
+                onPlayNext={() => onPlayNext(video)}
               />
             ))}
           </ul>

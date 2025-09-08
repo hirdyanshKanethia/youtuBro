@@ -28,28 +28,28 @@ const PlayerControls = ({
       <div className="flex flex-col items-center gap-6">
         <button
           onClick={onPlayPause}
-          className="text-white bg-purple-600 hover:bg-purple-700 p-3 rounded-full"
+          className="text-white bg-purple-600 hover:bg-purple-700 p-3 rounded-full cursor-pointer"
           title={isPlaying ? "Pause" : "Play"}
         >
           {isPlaying ? <IoPause size={24} /> : <IoPlay size={24} />}
         </button>
         <button
           onClick={onNext}
-          className="text-gray-300 hover:text-white"
+          className="text-gray-300 hover:text-white cursor-pointer"
           title="Next Video"
         >
           <IoPlaySkipForward size={24} />
         </button>
         <button
           onClick={onMuteToggle}
-          className="text-gray-300 hover:text-white"
+          className="text-gray-300 hover:text-white cursor-pointer"
           title={isMuted ? "Unmute" : "Mute"}
         >
           {isMuted ? <IoVolumeMute size={24} /> : <IoVolumeHigh size={24} />}
         </button>
         <button
           onClick={onAddToPlaylist}
-          className="text-gray-300 hover:text-white"
+          className="text-gray-300 hover:text-white cursor-pointer"
           title="Add to a playlist"
         >
           <IoAddCircleOutline size={24} />
@@ -59,7 +59,7 @@ const PlayerControls = ({
       {/* Bottom group with the new toggle button */}
       <button
         onClick={onToggleQueue}
-        className="text-gray-300 hover:text-white"
+        className="text-gray-300 hover:text-white cursor-pointer"
         title={isQueueOpen ? "Hide Queue" : "Show Queue"}
       >
         {isQueueOpen ? <IoClose size={24} /> : <BsCardList size={30} />}

@@ -238,9 +238,10 @@ class ActionHandlers {
 
     Parameters to extract:
     - topic: The main subject or title of the video (e.g., "latest iphone review", "how to cook pasta").
+    - type: The type of content that is asked. (e.g., "song", "tutorial", "informational", "entertainment").
     - creator: The specific channel or creator mentioned (e.g., "MKBHD", "Gordon Ramsay").
     - genre: The genre of music or content if specified (e.g., "lofi", "jazz", "comedy special").
-    - video_length: Infer the desired video length. Can be "short" (under 4 min), "medium" (4-20 min), or "long" (over 20 min). Default to "any".
+    - video_count: An integer representing the number of videos to find. If the user asks for a specific song or video (e.g., "play 'Stairway to Heaven'"), this should be 1. If the user asks for a genre or a general theme (e.g., "play some lofi music"), this should be a larger number like 15.
 
     Decision:
     - ready_to_execute: Should be true if you can extract at least a 'topic', 'creator', or 'genre'.
@@ -251,9 +252,10 @@ class ActionHandlers {
     {
       "parameters": {
         "topic": "string or null",
+        "type": "string or null",
         "creator": "string or null",
         "genre": "string or null",
-        "video_length": "short" | "medium" | "long" | "any"
+        "video_count": number
       },
       "ready_to_execute": boolean
     }
@@ -280,7 +282,7 @@ class ActionHandlers {
   // **************************************************************************************
   // Helper functions for the above flows
   // **************************************************************************************
-  
+
   async _handleAddVideos(userPrompt, playlist) {
     const prompt = `
     You are a YouTube search query expert. A user wants to add videos to their playlist.

@@ -185,12 +185,10 @@ async function executeAction(action, handlerResult, youtubeService) {
           message: "Sorry, I couldn't formulate a search query for that.",
         };
       }
-      const videoLength =
-        params.video_length !== "any" ? params.video_length : undefined;
+      const videoCountForQueue = params.video_count || 1;
       const videoIds = await youtubeService.searchForVideos(
         searchQuery,
-        15,
-        videoLength
+        videoCountForQueue,
       );
       if (videoIds.length === 0) {
         return {

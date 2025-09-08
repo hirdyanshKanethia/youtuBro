@@ -2,7 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { BsFillPlayFill, BsThreeDotsVertical } from "react-icons/bs";
 import DropdownMenu from "./DropdownMenu";
 
-const VideoItem = ({ video, onPlay, onAddToQueue, onAddToPlaylist, onRemoveFromPlaylist }) => {
+const VideoItem = ({
+  video,
+  onPlay,
+  onAddToQueue,
+  onAddToPlaylist,
+  onRemoveFromPlaylist,
+  onPlayNext,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -22,6 +29,7 @@ const VideoItem = ({ video, onPlay, onAddToQueue, onAddToPlaylist, onRemoveFromP
   const closeMenu = () => setIsMenuOpen(false);
 
   const menuOptions = [
+    { label: "Play Next", action: onPlayNext },
     { label: "Add to queue", action: () => onAddToQueue(video) },
     { label: "Add to another playlist", action: onAddToPlaylist },
     {

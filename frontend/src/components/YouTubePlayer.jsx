@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from 'react';
 
 const YouTubePlayer = ({
   videoQueue,
@@ -10,99 +10,76 @@ const YouTubePlayer = ({
   const playerRef = useRef(null);
   const currentVideo = videoQueue[currentVideoIndex];
 
-  // This ref holds the latest state and props for our event handlers
-  const stateRef = useRef({
-    videoQueue,
-    currentVideoIndex,
-    setCurrentVideoIndex,
-  });
   useEffect(() => {
-    stateRef.current = { videoQueue, currentVideoIndex, setCurrentVideoIndex };
-  });
-
-  useEffect(() => {
-    if (playerRef.current && playerRef.current.getPlayerState) {
-      if (isPlaying) {
-        playerRef.current.playVideo();
-      } else {
-        playerRef.current.pauseVideo();
+    // This function will be called by the event handlers.
+    // It's defined inside the effect so it always has the latest props.
+    const advanceToNextVideo = () => {
+      if (currentVideoIndex < videoQueue.length - 1) {
+        setCurrentVideoIndex(currentVideoIndex + 1);
       }
-    }
-  }, [isPlaying]);
+    };
 
-  // This effect handles mute/unmute commands
-  useEffect(() => {
-    if (playerRef.current && playerRef.current.mute) {
-      if (isMuted) {
-        playerRef.current.mute();
-      } else {
-        playerRef.current.unMute();
-      }
-    }
-  }, [isMuted]);
-
-  // This effect runs once to create the player
-  useEffect(() => {
+    // This function initializes the YouTube player.
     const createPlayer = () => {
-      // This function is called when the player's state changes
-      const onPlayerStateChange = (event) => {
-        // Use the ref to get the latest state, avoiding stale closures
-        const { videoQueue, currentVideoIndex, setCurrentVideoIndex } =
-          stateRef.current;
-
-        // Check if the video has ended (state 0)
-        if (event.data === window.YT.PlayerState.ENDED) {
-          if (currentVideoIndex < videoQueue.length - 1) {
-            console.log("Video ended, playing next in queue.");
-            setCurrentVideoIndex(currentVideoIndex + 1);
-          } else {
-            console.log("End of queue.");
-          }
-        }
-      };
-
-      playerRef.current = new window.YT.Player("player-div", {
-        height: "100%",
-        width: "100%",
+      playerRef.current = new window.YT.Player('player-div', {
+        height: '100%',
+        width: '100%',
+        videoId: currentVideo.id, // Use the current video ID on creation
         playerVars: {
           autoplay: 1,
-          mute: 0,
           playsinline: 1,
+          controls: 0, // Hide native controls
         },
         events: {
-          onStateChange: onPlayerStateChange,
+          'onStateChange': (event) => {
+            if (event.data === window.YT.PlayerState.ENDED) {
+              advanceToNextVideo();
+            }
+          },
         },
       });
     };
 
-    if (!window.YT) {
-      window.onYouTubeIframeAPIReady = createPlayer;
-    } else {
-      createPlayer();
+    // Main logic to handle player creation.
+    if (currentVideo) {
+      if (window.YT && window.YT.Player) {
+        createPlayer();
+      } else {
+        // If the API isn't ready, the script will call this global function.
+        window.onYouTubeIframeAPIReady = createPlayer;
+      }
     }
 
+    // This is the cleanup function. It runs when the component re-renders or unmounts.
     return () => {
       if (playerRef.current) {
         playerRef.current.destroy();
+        playerRef.current = null;
       }
     };
-  }, []); // Empty array ensures this runs only once on mount
+  }, [currentVideo]); // This effect re-runs ONLY when the video changes.
 
-  // This effect runs whenever the video to be played changes
+  // Effects to control play/pause and mute/unmute
   useEffect(() => {
-    if (playerRef.current && playerRef.current.loadVideoById && currentVideo) {
-      playerRef.current.loadVideoById(currentVideo.id);
+    if (playerRef.current?.playVideo) {
+      isPlaying ? playerRef.current.playVideo() : playerRef.current.pauseVideo();
     }
-  }, [currentVideo]);
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (playerRef.current?.mute) {
+      isMuted ? playerRef.current.mute() : playerRef.current.unMute();
+    }
+  }, [isMuted]);
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-black rounded-lg">
       <div id="player-div" className="w-full h-full"></div>
-
+      
       {videoQueue.length === 0 && (
         <div className="absolute text-center">
-          {/* <h3 className="text-2xl">Welcome to YoutuBro!</h3>
-          <p className="text-gray-400">Use the chat below to find a video to play.</p> */}
+          <h3 className="text-2xl">Welcome to YoutuBro!</h3>
+          <p className="text-gray-400">Use the chat below to find a video to play.</p>
         </div>
       )}
     </div>

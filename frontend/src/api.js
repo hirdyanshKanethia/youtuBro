@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  timeout: 30000,
 });
 
 // Request Interceptor:
@@ -10,7 +11,6 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('jwt_token');
     if (token) {
-      // If a token exists, add it to the Authorization header.
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -24,16 +24,12 @@ api.interceptors.request.use(
 // This runs AFTER a response is received.
 api.interceptors.response.use(
   (response) => {
-    // If the response is successful, just return it.
     return response;
   },
   (error) => {
-    // Check if the error is a 401 (Unauthorized).
     if (error.response && error.response.status === 401) {
       console.log("Token expired or invalid. Logging out.");
-      // Clear the expired token from storage.
       localStorage.removeItem('jwt_token');
-      // Redirect the user to the login page.
       window.location.href = '/login'; 
     }
     return Promise.reject(error);

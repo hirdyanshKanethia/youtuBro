@@ -28,6 +28,23 @@ const DashboardPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [videoToMove, setVideoToMove] = useState(null);
 
+  const handlePlayNext = (video) => {
+    if (videoQueue.length === 0) {
+      handlePlayVideoQueue([video]);
+      return;
+    }
+
+    setVideoQueue((prevQueue) => {
+      const newQueue = [...prevQueue];
+
+      newQueue.splice(currentVideoIndex + 1, 0, video);
+
+      return newQueue;
+    });
+
+    toast.success(`"${video.title}" will play next.`);
+  };
+
   const handleOpenAddToPlaylistModal = (video) => {
     setVideoToMove(video);
     setIsModalOpen(true);
@@ -443,6 +460,7 @@ const DashboardPage = () => {
               onAddToQueue={handleAddToQueue}
               onAddToPlaylist={handleOpenAddToPlaylistModal}
               onRemoveFromPlaylist={handleRemoveVideoFromPlaylist}
+              onPlayNext={handlePlayNext}
             />
           </div>
         )}

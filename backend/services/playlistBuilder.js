@@ -254,27 +254,44 @@ class PlaylistBuilder {
    * @returns {Promise<string|null>} The final search query string.
    */
   async generateVideoSearchQuery(videoParams) {
-    const { topic, creator, genre } = videoParams;
+    const { topic, type, creator, genre } = videoParams;
 
     const prompt = `
-      You are a YouTube search query synthesis expert. Your task is to take structured parameters and create the single best search query to find relevant videos.
+      You are a YouTube content expert and a master at crafting perfect search queries. Your sole task is to take a set of structured parameters and synthesize them into the single best YouTube search query.
 
-      Structured Parameters:
+      **Structured Parameters:**
       - Topic: "${topic || "not specified"}"
+      - Type: "${type || "not specified"}
       - Creator/Channel: "${creator || "not specified"}"
       - Genre: "${genre || "not specified"}"
 
-      Instructions:
-      1. Combine the provided parameters into a single, effective search query.
-      2. Prioritize the most specific information. If a creator is mentioned, they should be prominent in the query.
-      3. If the parameters are vague, create a broader, more general query.
-      4. Respond ONLY with a valid JSON object with a single key named "query".
+      **Instructions:**
+      1.  **Prioritize Specificity**: The most specific parameter is the most important. A "Creator/Channel" should always be the primary focus of the query.
+      2.  **Combine Naturally**: Blend the parameters into a natural search phrase. For example, combine a "creator" and a "topic".
+      3.  **Use Keywords for Genres**: If a "genre" is provided, use relevant keywords like "music," "mix," or "playlist" to create a good query.
+      4.  **Handle Vagueness**: If only a vague topic or genre is given, create a broad query that is likely to yield popular results (e.g., "best of [genre]").
+      5.  **Final Check**: Your final output must be a single, valid JSON object with one key, "query". Do not include any other text, explanations, or markdown.
 
-      Example Input: { topic: "new song", creator: "Tame Impala" }
-      Example Response: {"query": "Tame Impala new song"}
+      ---
+      **Examples:**
 
-      Example Input: { genre: "80s rock music" }
-      Example Response: {"query": "best 80s rock music"}
+      **Input:** { "topic": "new album review", "creator": "Anthony Fantano" }
+      **Output:** {"query": "Anthony Fantano new album review"}
+
+      **Input:** { "topic": "how to cook pasta", "creator": "not specified", "genre": "not specified" }
+      **Output:** {"query": "how to cook pasta carbonara tutorial"}
+
+      **Input:** { "topic": "not specified", "creator": "not specified", "genre": "90s hip hop" }
+      **Output:** {"query": "90s hip hop playlist"}
+
+      **Input:** { "topic": "latest song", "creator": "Kendrick Lamar", "genre": "hip hop" }
+      **Output:** {"query": "Kendrick Lamar latest song"}
+      ---
+
+      **Your Turn:**
+
+      **Input:** { "topic": "${topic || "not specified"}", "creator": "${creator || "not specified"}", "genre": "${genre || "not specified"}" }
+      **Output:**
     `;
 
     try {
