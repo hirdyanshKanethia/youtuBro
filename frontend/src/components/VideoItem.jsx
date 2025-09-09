@@ -41,7 +41,6 @@ const VideoItem = ({
 
   return (
     <li
-      onClick={onPlay}
       className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700"
     >
       {/* Image and Thumbnail div */}

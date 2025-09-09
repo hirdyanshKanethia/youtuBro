@@ -8,6 +8,7 @@ const ActionHandlers = require("../models/actionHandlers");
 const PlaylistBuilder = require("../services/playlistBuilder");
 const YouTubeService = require("../services/youtubeService");
 const { logActionToDB } = require("../utils/dbLogger");
+const { deleteKeysByPattern } = require("../services/cache")
 
 const router = express.Router();
 
@@ -110,6 +111,11 @@ router.post("/", authMiddleware, async (req, res) => {
         await logActionToDB(userId, executionResult.action_message);
       }
 
+      if (executionResult.success && classification.action !== "play_video") {
+        console.log("[REDIS] Clearing cached user data");
+        await deleteKeysByPattern(`playlists:${userId}*`);
+      }
+
       return res.json(executionResult);
     } else {
       return res.json({
@@ -188,7 +194,7 @@ async function executeAction(action, handlerResult, youtubeService) {
       const videoCountForQueue = params.video_count || 1;
       const videoIds = await youtubeService.searchForVideos(
         searchQuery,
-        videoCountForQueue,
+        videoCountForQueue
       );
       if (videoIds.length === 0) {
         return {
@@ -211,10 +217,6 @@ async function executeAction(action, handlerResult, youtubeService) {
 
     case "manage_playlist": {
       const params = handlerResult.parameters;
-      const playlistBuilder = new PlaylistBuilder(
-        process.env.GEMINI_API_KEY,
-        youtubeService
-      );
 
       switch (params.management_action) {
         case "add_videos":
