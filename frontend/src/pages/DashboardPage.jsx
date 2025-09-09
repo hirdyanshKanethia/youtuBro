@@ -6,6 +6,7 @@ import PlaylistDetail from "../components/PlaylistDetail";
 import PlayerQueue from "../components/PlayerQueue";
 import PlayerControls from "../components/PlayerControls";
 import PlaylistSelectionModal from "../components/PlaylistSelectionModal";
+import ActionHistory from "../components/ActionHistory";
 import api from "../api";
 
 import { arrayMove } from "@dnd-kit/sortable";
@@ -24,9 +25,14 @@ const DashboardPage = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [loadingPlaylists, setLoadingPlaylists] = useState(true);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [videoToMove, setVideoToMove] = useState(null);
+
+  const toggleHistory = () => {
+    setIsHistoryOpen(!isHistoryOpen);
+  };
 
   const handlePlayNext = (video) => {
     if (videoQueue.length === 0) {
@@ -499,9 +505,11 @@ const DashboardPage = () => {
         <div className="h-2/5 flex gap-4 min-h-0">
           {/* Chat Interface */}
           <div className="bg-gray-800 rounded-lg p-4 flex-1 min-w-0 transition-all duration-300 ease-in-out">
-            <ChatInterface onPlayVideo={handlePlayVideoQueue} />
+            <ChatInterface
+              onPlayVideo={handlePlayVideoQueue}
+              onToggleHistory={toggleHistory}
+            />
           </div>
-
           {/* Player Queue */}
           <div
             className={`transition-all duration-300 ease-in-out overflow-hidden ${
@@ -517,6 +525,7 @@ const DashboardPage = () => {
               onClearQueue={handleClearQueue}
             />
           </div>
+          {isHistoryOpen && <ActionHistory onClose={toggleHistory} />}
         </div>
       </div>
       {/* Render the modal conditionally */}

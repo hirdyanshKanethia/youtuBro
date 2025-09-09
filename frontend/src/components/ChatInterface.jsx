@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import { VscHistory } from "react-icons/vsc";
 import api from "../api";
 import Message from "./Message";
 
-const ChatInterface = ({ onPlayVideo }) => {
+const ChatInterface = ({ onPlayVideo, onToggleHistory }) => {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState([
     {
@@ -68,16 +69,25 @@ const ChatInterface = ({ onPlayVideo }) => {
         {/* Add an empty div at the end of the list with the ref attached. */}
         <div ref={messagesEndRef} />
       </div>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g., create a playlist of 20 rock songs..."
-          className="w-full p-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-          disabled={loading}
-        />
-      </form>
+      <div className="relative flex items-center">
+        <form onSubmit={handleSubmit} className="w-full">
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="e.g., create a playlist of 20 rock songs..."
+            className="w-full p-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            disabled={loading}
+          />
+        </form>
+        <button
+          onClick={onToggleHistory}
+          className="absolute right-3 text-gray-400 hover:text-white cursor-pointer"
+          title="View Action History"
+        >
+          <VscHistory size={22} />
+        </button>
+      </div>
     </div>
   );
 };
