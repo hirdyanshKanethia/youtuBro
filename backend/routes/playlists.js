@@ -63,7 +63,7 @@ router.get("/:playlistId/items", authMiddleware, async (req, res) => {
 
     const cachedData = await redisClient.get(cacheKey);
     if (cachedData) {
-      console.log("[REDIS] Serving videos from cache for videoId: ", playlistId);
+      console.log("[REDIS] Serving videos from cache for playlistId: ", playlistId);
       return res.json({ success: true, videoIds: JSON.parse(cachedData) });
     }
 

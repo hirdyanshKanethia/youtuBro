@@ -13,26 +13,75 @@ import { arrayMove } from "@dnd-kit/sortable";
 import toast from "react-hot-toast";
 
 const DashboardPage = () => {
+  // ####################################################################################
+  // State Variables
+  // ####################################################################################
+
+  // Queue
   const [videoQueue, setVideoQueue] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [isQueueOpen, setIsQueueOpen] = useState(true);
+
+  // Playlists
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [playlistItems, setPlaylistItems] = useState([]);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isQueueOpen, setIsQueueOpen] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [loadingPlaylists, setLoadingPlaylists] = useState(true);
+  const [videoToMove, setVideoToMove] = useState(null);
+
+  // Conditionally rendering modals and others
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [videoToMove, setVideoToMove] = useState(null);
+  // ####################################################################################
+  // Component-rendering handling
+  // ####################################################################################
 
   const toggleHistory = () => {
     setIsHistoryOpen(!isHistoryOpen);
   };
+
+  const handleOpenAddToPlaylistModal = (video) => {
+    setVideoToMove(video);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setVideoToMove(null);
+  };
+
+  const handleOpenModalForCurrentVideo = () => {
+    // Find the currently playing video from the queue.
+    const currentVideo = videoQueue[currentVideoIndex];
+
+    if (currentVideo) {
+      // If a video is playing, call the existing function to open the modal.
+      handleOpenAddToPlaylistModal(currentVideo);
+    } else {
+      // If the queue is empty, provide feedback to the user.
+      toast.error("No video is currently playing.");
+    }
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const toggleQueue = () => {
+    setIsQueueOpen(!isQueueOpen);
+  };
+
+  // ####################################################################################
+
+  // ####################################################################################
+  // Playback Controls
+  // ####################################################################################
 
   const handlePlayNext = (video) => {
     if (videoQueue.length === 0) {
@@ -51,15 +100,28 @@ const DashboardPage = () => {
     toast.success(`"${video.title}" will play next.`);
   };
 
-  const handleOpenAddToPlaylistModal = (video) => {
-    setVideoToMove(video);
-    setIsModalOpen(true);
+  const handlePlayPause = () => {
+    if (videoQueue.length > 0) {
+      setIsPlaying(!isPlaying);
+    }
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setVideoToMove(null);
+  const handleNextVideo = () => {
+    if (videoQueue.length > 1) {
+      setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % videoQueue.length);
+      setIsPlaying(true);
+    }
   };
+
+  const handleMuteToggle = () => {
+    setIsMuted(!isMuted);
+  };
+
+  // ####################################################################################
+
+  // ####################################################################################
+  // Playlist Handling and Playlist Sidebar
+  // ####################################################################################
 
   const handleAddVideoToPlaylist = async (playlistId) => {
     if (!videoToMove) return;
@@ -137,144 +199,6 @@ const DashboardPage = () => {
         // console.error("Error caught by handleRemoveVideoFromPlaylist:", error);
       }
     }
-  };
-
-  const handleOpenModalForCurrentVideo = () => {
-    // Find the currently playing video from the queue.
-    const currentVideo = videoQueue[currentVideoIndex];
-
-    if (currentVideo) {
-      // If a video is playing, call the existing function to open the modal.
-      handleOpenAddToPlaylistModal(currentVideo);
-    } else {
-      // If the queue is empty, provide feedback to the user.
-      toast.error("No video is currently playing.");
-    }
-  };
-
-  useEffect(() => {
-    const fetchPlaylists = async () => {
-      try {
-        setLoadingPlaylists(true);
-        const response = await api.get("/playlists");
-        if (response.data.success) {
-          setPlaylists(response.data.playlists);
-        }
-      } catch (error) {
-        console.error("Failed to fetch playlists:", error);
-      } finally {
-        setLoadingPlaylists(false);
-      }
-    };
-    fetchPlaylists();
-  }, []);
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-
-    if (active.id !== over.id) {
-      setVideoQueue((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const newQueue = arrayMove(items, oldIndex, newIndex);
-
-        // Update the current video index after reordering
-        const currentVideoId = items[currentVideoIndex].id;
-        setCurrentVideoIndex(
-          newQueue.findIndex((item) => item.id === currentVideoId)
-        );
-
-        return newQueue;
-      });
-    }
-  };
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const toggleQueue = () => {
-    setIsQueueOpen(!isQueueOpen);
-  };
-
-  const handlePlayPause = () => {
-    if (videoQueue.length > 0) {
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleNextVideo = () => {
-    if (videoQueue.length > 1) {
-      setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % videoQueue.length);
-      setIsPlaying(true);
-    }
-  };
-
-  const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
-  };
-
-  const handlePlayVideoQueue = (videos, startIndex = 0) => {
-    if (videos && videos.length > 0) {
-      // Create a new queue starting from the selected video's index
-      const newQueue = videos.slice(startIndex);
-      setVideoQueue(newQueue);
-      setCurrentVideoIndex(0); // The new queue always starts at index 0
-    }
-  };
-
-  const handleAddToQueue = (video) => {
-    if (videoQueue.length === 0) {
-      // If the queue is empty, just start playing the video.
-      handlePlayVideoQueue([video]);
-    } else {
-      // Otherwise, add the video to the end of the existing queue.
-      setVideoQueue((prevQueue) => [...prevQueue, video]);
-      console.log(`Added "${video.title}" to the queue.`);
-    }
-  };
-
-  const handleShuffleQueue = () => {
-    if (videoQueue.length < 2) return; // No need to shuffle if 0 or 1 video
-
-    // Create a new shuffled array, keeping the current video at the top.
-    const currentVideo = videoQueue[currentVideoIndex];
-    const remainingVideos = videoQueue.filter(
-      (_, index) => index !== currentVideoIndex
-    );
-
-    // Fisher-Yates shuffle algorithm for the remaining videos
-    for (let i = remainingVideos.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [remainingVideos[i], remainingVideos[j]] = [
-        remainingVideos[j],
-        remainingVideos[i],
-      ];
-    }
-
-    const newQueue = [currentVideo, ...remainingVideos];
-    setVideoQueue(newQueue);
-    setCurrentVideoIndex(0); // Reset index to the top
-    console.log("Queue shuffled.");
-  };
-
-  const handlePlayFromQueue = (index) => {
-    setCurrentVideoIndex(index);
-  };
-
-  const handleClearQueue = () => {
-    // No need to clear if there's only one or zero videos.
-    if (videoQueue.length <= 1) return;
-
-    // Get the video that is currently playing.
-    const currentVideo = videoQueue[currentVideoIndex];
-
-    // Set the queue to a new array containing only that video.
-    setVideoQueue([currentVideo]);
-
-    // Reset the index to 0, as it's now the only item.
-    setCurrentVideoIndex(0);
-    // console.log("Queue cleared except for the current video.");
   };
 
   const handlePlaylistSelect = async (playlist) => {
@@ -423,6 +347,114 @@ const DashboardPage = () => {
       }
     }
   };
+
+  // ####################################################################################
+
+  // ####################################################################################
+  // Queue Handling
+  // ####################################################################################
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      setVideoQueue((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        const newQueue = arrayMove(items, oldIndex, newIndex);
+
+        // Update the current video index after reordering
+        const currentVideoId = items[currentVideoIndex].id;
+        setCurrentVideoIndex(
+          newQueue.findIndex((item) => item.id === currentVideoId)
+        );
+
+        return newQueue;
+      });
+    }
+  };
+
+  const handlePlayVideoQueue = (videos, startIndex = 0) => {
+    if (videos && videos.length > 0) {
+      // Create a new queue starting from the selected video's index
+      const newQueue = videos.slice(startIndex);
+      setVideoQueue(newQueue);
+      setCurrentVideoIndex(0); // The new queue always starts at index 0
+    }
+  };
+
+  const handleAddToQueue = (video) => {
+    if (videoQueue.length === 0) {
+      // If the queue is empty, just start playing the video.
+      handlePlayVideoQueue([video]);
+    } else {
+      // Otherwise, add the video to the end of the existing queue.
+      setVideoQueue((prevQueue) => [...prevQueue, video]);
+      console.log(`Added "${video.title}" to the queue.`);
+    }
+  };
+
+  const handleShuffleQueue = () => {
+    if (videoQueue.length < 2) return; // No need to shuffle if 0 or 1 video
+
+    // Create a new shuffled array, keeping the current video at the top.
+    const currentVideo = videoQueue[currentVideoIndex];
+    const remainingVideos = videoQueue.filter(
+      (_, index) => index !== currentVideoIndex
+    );
+
+    // Fisher-Yates shuffle algorithm for the remaining videos
+    for (let i = remainingVideos.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [remainingVideos[i], remainingVideos[j]] = [
+        remainingVideos[j],
+        remainingVideos[i],
+      ];
+    }
+
+    const newQueue = [currentVideo, ...remainingVideos];
+    setVideoQueue(newQueue);
+    setCurrentVideoIndex(0); // Reset index to the top
+    console.log("Queue shuffled.");
+  };
+
+  const handlePlayFromQueue = (index) => {
+    setCurrentVideoIndex(index);
+  };
+
+  const handleClearQueue = () => {
+    // No need to clear if there's only one or zero videos.
+    if (videoQueue.length <= 1) return;
+
+    // Get the video that is currently playing.
+    const currentVideo = videoQueue[currentVideoIndex];
+
+    // Set the queue to a new array containing only that video.
+    setVideoQueue([currentVideo]);
+
+    // Reset the index to 0, as it's now the only item.
+    setCurrentVideoIndex(0);
+    // console.log("Queue cleared except for the current video.");
+  };
+
+  // ####################################################################################
+
+  useEffect(() => {
+    const fetchPlaylists = async () => {
+      try {
+        setLoadingPlaylists(true);
+        const response = await api.get("/playlists");
+        if (response.data.success) {
+          setPlaylists(response.data.playlists);
+        }
+      } catch (error) {
+        console.error("Failed to fetch playlists:", error);
+      } finally {
+        setLoadingPlaylists(false);
+      }
+    };
+    fetchPlaylists();
+  }, []);
 
   return (
     <div className="flex h-screen p-4 gap-4 relative">
