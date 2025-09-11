@@ -5,12 +5,13 @@ const cors = require('cors')
 const app = express();
 
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
-  optionsSuccessStatus: 200
+  origin: process.env.FRONTEND_URL || "http://localhost:5173", 
+  credentials: true, 
+  optionsSuccessStatus: 200 
 }
 
-app.use(express.json())
-app.use(cors(corsOptions))
+app.use(cors(corsOptions)) 
+app.use(express.json()) 
 
 const authRoutes = require("./routes/auth");
 const chatRoutes = require("./routes/chat")
@@ -25,7 +26,13 @@ app.use("/playlists", playlistRoutes)
 app.use("/videos", videoRoutes)
 app.use("/actions", actionRoutes)
 
-app.listen(3000, () => {
-  console.log("Server running at http://localhost:3000");
-  console.log("Oauth running at http://localhost:3000/auth/login")
+app.get('/', (req, res) => {
+  res.status(200).send('YoutuBro Backend is running and CORS is configured!');
+});
+
+const PORT = process.env.PORT || 3000; 
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`CORS origin set to: ${process.env.FRONTEND_URL}`);
+  console.log("OAuth login endpoint: /auth/login");
 });
