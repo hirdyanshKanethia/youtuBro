@@ -13,7 +13,7 @@ function App() {
       <div className="bg-black text-white min-h-screen">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth-success" element={<AuthCallback />} />
           
           <Route 
             path="/" 

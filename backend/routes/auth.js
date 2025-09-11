@@ -74,7 +74,7 @@ router.get("/oauth2callback", async (req, res) => {
     );
 
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-    res.redirect(`${frontendUrl}/auth/callback?token=${jwtToken}`);
+    res.redirect(`${frontendUrl}/auth-success?token=${jwtToken}`);
   } catch (err) {
     console.error("OAuth error:", err);
     res.status(500).send("OAuth failed");
