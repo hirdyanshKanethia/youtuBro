@@ -32,7 +32,7 @@ const PlaylistItem = ({
     {
       label: "Delete Playlist",
       action: onDelete,
-      className: "text-red-500 hover:bg-red-500 hover:text-white", // Custom style for delete
+      className: "text-red-500 hover:bg-red-500 hover:text-white", 
     },
   ];
 
@@ -40,7 +40,7 @@ const PlaylistItem = ({
     <li
       onClick={onSelect}
       className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors duration-200 group ${
-        isSelected ? "bg-purple-600" : "hover:bg-gray-700"
+        isSelected ? "bg-purple-600" : "hover:bg-gray-600"
       }`}
     >
       <div className="flex items-center gap-3">
@@ -74,7 +74,7 @@ const PlaylistItem = ({
             e.stopPropagation();
             setIsMenuOpen(!isMenuOpen);
           }}
-          className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-600"
+          className="text-gray-400 hover:text-black p-2 rounded-full hover:bg-blue-500 cursor-pointer"
         >
           <BsThreeDotsVertical size={20} />
         </button>

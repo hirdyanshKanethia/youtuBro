@@ -39,9 +39,9 @@ const ActionHistory = ({ onClose }) => {
 
   const modalJsx = (
     <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md border-2 border-purple-500">
+      <div className="bg-black rounded-lg p-6 w-full max-w-md border-2 border-purple-500">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold">Action History</h3>
+          <h3 className="text-xl text-white font-bold">Action History</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <IoClose size={24} />
           </button>

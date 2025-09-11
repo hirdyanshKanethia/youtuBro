@@ -1,11 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
+import youtubroLogo from "../assets/youtuBro_logo.png"
 
 const YouTubePlayer = ({
   videoQueue,
   currentVideoIndex,
   setCurrentVideoIndex,
   isPlaying,
-  isMuted
+  isMuted,
 }) => {
   const playerRef = useRef(null);
   const currentVideo = videoQueue[currentVideoIndex];
@@ -21,17 +22,17 @@ const YouTubePlayer = ({
 
     // This function initializes the YouTube player.
     const createPlayer = () => {
-      playerRef.current = new window.YT.Player('player-div', {
-        height: '100%',
-        width: '100%',
+      playerRef.current = new window.YT.Player("player-div", {
+        height: "100%",
+        width: "100%",
         videoId: currentVideo.id, // Use the current video ID on creation
         playerVars: {
           autoplay: 1,
           playsinline: 1,
-          controls: 0, // Hide native controls
+          controls: 1, 
         },
         events: {
-          'onStateChange': (event) => {
+          onStateChange: (event) => {
             if (event.data === window.YT.PlayerState.ENDED) {
               advanceToNextVideo();
             }
@@ -62,7 +63,9 @@ const YouTubePlayer = ({
   // Effects to control play/pause and mute/unmute
   useEffect(() => {
     if (playerRef.current?.playVideo) {
-      isPlaying ? playerRef.current.playVideo() : playerRef.current.pauseVideo();
+      isPlaying
+        ? playerRef.current.playVideo()
+        : playerRef.current.pauseVideo();
     }
   }, [isPlaying]);
 
@@ -75,11 +78,19 @@ const YouTubePlayer = ({
   return (
     <div className="w-full h-full flex items-center justify-center bg-black rounded-lg">
       <div id="player-div" className="w-full h-full"></div>
-      
+
+      {/* This block is shown only when the video queue is empty */}
       {videoQueue.length === 0 && (
         <div className="absolute text-center">
-          <h3 className="text-2xl">Welcome to YoutuBro!</h3>
-          <p className="text-gray-400">Use the chat below to find a video to play.</p>
+          <img
+            src={youtubroLogo}
+            alt="YoutuBro Logo"
+            className="w-48 mx-auto mb-4 animate-bounce"
+          />
+          <h3 className="text-2xl font-bold">Welcome to YoutuBro!</h3>
+          <p className="text-gray-400">
+            Use the chat below to find a video to play.
+          </p>
         </div>
       )}
     </div>

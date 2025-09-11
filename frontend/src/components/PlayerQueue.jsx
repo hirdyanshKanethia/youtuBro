@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { IoShuffle, IoTrashOutline } from "react-icons/io5";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {
@@ -15,11 +15,29 @@ const PlayerQueue = ({
   onDragEnd,
   onClearQueue,
 }) => {
+  const itemRefs = useRef([]);
+  // Ensure the array of refs is the same size as the queue.
+  itemRefs.current = itemRefs.current.slice(0, queue.length);
+
+  // This effect runs whenever the currently playing video changes.
+  useEffect(() => {
+    // Find the ref for the active item and scroll it into view.
+    const activeItemRef = itemRefs.current[currentVideoIndex];
+    if (activeItemRef) {
+      activeItemRef.scrollIntoView({
+        behavior: "smooth",
+        block: "start", 
+      });
+    }
+  }, [currentVideoIndex]);
+
   return (
-    <div className="h-full flex flex-col bg-gray-800 rounded-lg p-4">
+    <div className="h-full flex flex-col bg-black rounded-lg p-2">
       {/* Header with Title and Action Buttons */}
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
-        <h3 className="text-xl font-bold">Up Next</h3>
+        <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-red-400">
+          Up Next
+        </h3>
         <div>
           <button
             onClick={onShuffle}
@@ -45,6 +63,7 @@ const PlayerQueue = ({
             <ul>
               {queue.map((video, index) => (
                 <QueueItem
+                  ref={(el) => (itemRefs.current[index] = el)}
                   key={video.id}
                   id={video.id}
                   video={video}

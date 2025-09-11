@@ -25,11 +25,11 @@ const PlaylistSidebar = ({
       >
         {/* Conditionally render the title */}
         {isSidebarOpen && (
-          <h2 className="text-2xl font-bold">Your Playlists</h2>
+          <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-red-400">Your Playlists</h2>
         )}
         <button
           onClick={toggleSidebar}
-          className="text-gray-400 hover:text-white border border-gray-600 rounded-full p-1 transition-colors hover:border-purple-500 cursor-pointer"
+          className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-full p-1 cursor-pointer"
           title="Toggle Playlist Sidebar"
         >
           {/* You can use a different icon for open/close if you wish */}

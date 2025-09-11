@@ -77,7 +77,7 @@ const VideoItem = ({
             e.stopPropagation();
             setIsMenuOpen(!isMenuOpen);
           }}
-          className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-600"
+          className="text-gray-400 hover:text-black p-2 rounded-full hover:bg-blue-500 cursor-pointer"
         >
           <BsThreeDotsVertical size={18} />
         </button>

@@ -8,7 +8,7 @@ const ChatInterface = ({ onPlayVideo, onToggleHistory }) => {
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hello! How can I help you today? You can ask me to create a playlist, play a video, and more.",
+      text: "Hello! How can I help you today? You can ask me to create a playlist, play a video, manage your playlists.",
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -62,7 +62,7 @@ const ChatInterface = ({ onPlayVideo, onToggleHistory }) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-grow overflow-y-auto mb-4 p-2 bg-gray-900 rounded hide-scrollbar">
+      <div className="flex-grow overflow-y-auto mb-4 p-2 bg-gray-950 rounded hide-scrollbar">
         {messages.map((msg, index) => (
           <Message key={index} sender={msg.sender} text={msg.text} />
         ))}
@@ -75,8 +75,8 @@ const ChatInterface = ({ onPlayVideo, onToggleHistory }) => {
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g., create a playlist of 20 rock songs..."
-            className="w-full p-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            placeholder="Your command goes here..."
+            className="w-full p-3 bg-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             disabled={loading}
           />
         </form>

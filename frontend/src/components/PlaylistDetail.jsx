@@ -14,10 +14,10 @@ const PlaylistDetail = ({
   onPlayNext
 }) => {
   return (
-    <div className="p-1 h-full flex flex-col bg-gray-800">
+    <div className="p-1 h-full flex flex-col bg-black">
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <div>
-          <h3 className="text-xl font-bold">{playlist.name}</h3>
+          <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-red-400">{playlist.name}</h3>
           <p className="text-sm text-gray-400">{playlist.videoCount} videos</p>
         </div>
       </div>

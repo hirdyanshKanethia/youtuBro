@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import AuthCallback from './components/AuthCallback';
@@ -8,12 +9,12 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   return (
     <Router>
-      <div className="bg-gray-900 text-white min-h-screen">
+      <Toaster position="top-center" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
+      <div className="bg-black text-white min-h-screen">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           
-          {/* Protected Dashboard Route */}
           <Route 
             path="/" 
             element={

@@ -457,10 +457,10 @@ const DashboardPage = () => {
   }, []);
 
   return (
-    <div className="flex h-screen p-4 gap-4 relative">
+    <div className="flex bg-gray-950 h-screen p-4 gap-4 relative">
       {/* LEFT SIDE CONTAINER (Sidebar + Details) */}
       <div
-        className={`flex-shrink-0 flex gap-4 transition-all duration-300 ease-in-out
+        className={`flex-shrink-0 flex gap-1 transition-all duration-300 ease-in-out
           ${!isSidebarOpen ? "w-0 md:w-16 lg:w-20" : ""}
           ${isSidebarOpen && !isDetailOpen ? "w-full md:w-80 lg:w-80" : ""}
           ${isSidebarOpen && isDetailOpen ? "w-full md:w-96 lg:w-[41rem]" : ""}
@@ -468,7 +468,7 @@ const DashboardPage = () => {
       >
         {/* Sidebar Container */}
         <div
-          className={`bg-gray-800 rounded-lg p-2 overflow-hidden transition-all duration-300 ease-in-out
+          className={`flex-shrink-0 bg-black rounded-lg p-2 overflow-hidden transition-all duration-300 ease-in-out
           ${!isSidebarOpen ? "w-0 md:w-16 lg:w-20" : "w-full md:w-80 lg:w-80"}
         `}
         >
@@ -489,7 +489,7 @@ const DashboardPage = () => {
 
         {/* Details Panel */}
         {isDetailOpen && isSidebarOpen && selectedPlaylist && (
-          <div className="bg-gray-800 rounded-lg p-4 overflow-hidden w-full md:w-80 lg:w-80 transition-all duration-300 ease-in-out">
+          <div className="bg-black rounded-lg p-4 overflow-hidden w-full md:w-80 lg:w-80 transition-all duration-300 ease-in-out">
             <PlaylistDetail
               playlist={selectedPlaylist}
               items={playlistItems}
@@ -507,9 +507,9 @@ const DashboardPage = () => {
       {/* RIGHT SIDE CONTAINER */}
       <div className="flex-1 flex flex-col gap-4 h-full min-w-0">
         {/* Top Section: Player + Controls */}
-        <div className="h-3/5 flex gap-4 min-h-0">
+        <div className="h-3/5 flex gap-2 min-h-0">
           {/* Main Player */}
-          <div className="flex-1 bg-gray-800 rounded-lg min-w-0">
+          <div className="flex-1 bg-black rounded-lg min-w-0">
             <YouTubePlayer
               videoQueue={videoQueue}
               currentVideoIndex={currentVideoIndex}
@@ -534,9 +534,9 @@ const DashboardPage = () => {
         </div>
 
         {/* Bottom Section: Chat + Queue */}
-        <div className="h-2/5 flex gap-4 min-h-0">
+        <div className="h-2/5 flex gap-2 min-h-0">
           {/* Chat Interface */}
-          <div className="bg-gray-800 rounded-lg p-4 flex-1 min-w-0 transition-all duration-300 ease-in-out">
+          <div className="bg-black rounded-lg p-4 flex-1 min-w-0 transition-all duration-300 ease-in-out">
             <ChatInterface
               onPlayVideo={handlePlayVideoQueue}
               onToggleHistory={toggleHistory}
