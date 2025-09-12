@@ -573,7 +573,18 @@ const DashboardPage = () => {
                   />
                 </div>
               ) : (
-                <div className="bg-black rounded-lg p-4 h-full overflow-hidden">
+                <div className="bg-black rounded-lg p-4 h-full overflow-hidden relative">
+                  {/* Close Button for Mobile */}
+                  <button
+                    onClick={() => {
+                      setIsDetailOpen(false);
+                      setSelectedPlaylist(null);
+                    }}
+                    className="absolute top-2 right-2 z-10 bg-gray-800 hover:bg-gray-700 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                    title="Close playlist details"
+                  >
+                    ✕
+                  </button>
                   <PlaylistDetail
                     playlist={selectedPlaylist}
                     items={playlistItems}
