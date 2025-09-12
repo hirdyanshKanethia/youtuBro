@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./frontend/src/assets/youtuBro_logo_with_text.png" alt="YoutuBro Logo" width="400">
+</p>
+
 # YoutuBro
 
 YoutuBro is an intelligent, AI-powered assistant designed to streamline your YouTube experience. It allows users to create, manage, and interact with playlists and videos using natural language commands through a conversational interface. By integrating directly with a user's YouTube account, it provides a seamless and personalized media management and playback environment.
