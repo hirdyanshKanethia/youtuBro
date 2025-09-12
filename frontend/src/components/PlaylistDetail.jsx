@@ -6,7 +6,7 @@ const PlaylistDetail = ({
   playlist,
   items,
   isLoading,
-  // onClose,
+  onClose,
   onPlayFromPlaylist,
   onAddToQueue,
   onAddToPlaylist,
@@ -14,7 +14,16 @@ const PlaylistDetail = ({
   onPlayNext
 }) => {
   return (
-    <div className="p-1 h-full flex flex-col bg-black">
+    // Add 'relative' class here
+    <div className="p-1 h-full flex flex-col bg-black relative"> {/* <--- ADDED 'relative' */}
+      {/* Close Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-700 transition-colors text-gray-400 hover:text-white focus:outline-none z-10"
+        aria-label="Close playlist details"
+      >
+        <IoClose size={18} />
+      </button>
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <div>
           <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-red-400">{playlist.name}</h3>
