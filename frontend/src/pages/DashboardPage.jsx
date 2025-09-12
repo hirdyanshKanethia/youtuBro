@@ -38,6 +38,9 @@ const DashboardPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
+  // Mobile-specific states
+  const [mobileActiveTab, setMobileActiveTab] = useState("player"); // player, playlists, queue, chat
+
   // ####################################################################################
   // Component-rendering handling
   // ####################################################################################
@@ -75,6 +78,11 @@ const DashboardPage = () => {
 
   const toggleQueue = () => {
     setIsQueueOpen(!isQueueOpen);
+  };
+
+  // Mobile tab switching
+  const handleMobileTabChange = (tab) => {
+    setMobileActiveTab(tab);
   };
 
   // ####################################################################################
@@ -301,6 +309,8 @@ const DashboardPage = () => {
       const newQueue = items.slice(startIndex);
       setVideoQueue(newQueue);
       setCurrentVideoIndex(0); // The new queue always starts at index 0
+      // Switch to player tab on mobile when playing
+      setMobileActiveTab("player");
     }
   };
 
@@ -380,6 +390,8 @@ const DashboardPage = () => {
       const newQueue = videos.slice(startIndex);
       setVideoQueue(newQueue);
       setCurrentVideoIndex(0); // The new queue always starts at index 0
+      // Switch to player tab on mobile when playing
+      setMobileActiveTab("player");
     }
   };
 
@@ -456,110 +468,286 @@ const DashboardPage = () => {
     fetchPlaylists();
   }, []);
 
-  return (
-    <div className="flex bg-gray-950 h-screen p-4 gap-4 relative">
-      {/* LEFT SIDE CONTAINER (Sidebar + Details) */}
-      <div
-        className={`flex-shrink-0 flex gap-1 transition-all duration-300 ease-in-out
-          ${!isSidebarOpen ? "w-0 md:w-16 lg:w-20" : ""}
-          ${isSidebarOpen && !isDetailOpen ? "w-full md:w-80 lg:w-80" : ""}
-          ${isSidebarOpen && isDetailOpen ? "w-full md:w-96 lg:w-[41rem]" : ""}
-        `}
-      >
-        {/* Sidebar Container */}
-        <div
-          className={`flex-shrink-0 bg-black rounded-lg p-2 overflow-hidden transition-all duration-300 ease-in-out
-          ${!isSidebarOpen ? "w-0 md:w-16 lg:w-20" : "w-full md:w-80 lg:w-80"}
-        `}
-        >
-          {(isSidebarOpen || window.innerWidth >= 768) && (
-            <PlaylistSidebar
-              playlists={playlists}
-              isLoading={loadingPlaylists}
-              onPlaylistSelect={handlePlaylistSelect}
-              onPlayPlaylist={handlePlayPlaylist}
-              selectedPlaylist={selectedPlaylist}
-              toggleSidebar={toggleSidebar}
-              isSidebarOpen={isSidebarOpen}
-              onShufflePlay={handleShufflePlayPlaylist}
-              onDelete={handleDeletePlaylist}
-            />
+  // Mobile Tab Navigation Component
+  const MobileTabNavigation = () => {
+    const tabs = [
+      { id: "player", label: "Player", icon: "🎥" },
+      { id: "playlists", label: "Playlists", icon: "📋" },
+      { id: "queue", label: `Queue${videoQueue.length > 0 ? ` (${videoQueue.length})` : ''}`, icon: "🎵" },
+      { id: "chat", label: "Chat", icon: "💬" },
+    ];
+
+    return (
+      <div className="flex bg-gray-800 rounded-lg p-1 mb-4">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => handleMobileTabChange(tab.id)}
+            className={`flex-1 px-2 py-2 rounded-md text-xs font-medium transition-all duration-200 ${
+              mobileActiveTab === tab.id
+                ? "bg-blue-600 text-white shadow-lg"
+                : "text-gray-300 hover:text-white hover:bg-gray-700"
+            }`}
+          >
+            <div className="flex flex-col items-center space-y-1">
+              <span className="text-sm">{tab.icon}</span>
+              <span className="text-xs leading-none">{tab.label}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // Mobile Layout Component
+  const MobileLayout = () => {
+    return (
+      <div className="flex flex-col h-screen bg-gray-950 p-2">
+        {/* Mobile Tab Navigation */}
+        <MobileTabNavigation />
+
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-hidden">
+          {/* Player Tab */}
+          {mobileActiveTab === "player" && (
+            <div className="h-full flex flex-col space-y-2">
+              <div className="flex-1 bg-black rounded-lg">
+                <YouTubePlayer
+                  videoQueue={videoQueue}
+                  currentVideoIndex={currentVideoIndex}
+                  setCurrentVideoIndex={setCurrentVideoIndex}
+                  isPlaying={isPlaying}
+                  isMuted={isMuted}
+                />
+              </div>
+              {/* Player Controls */}
+              <div className="h-16 flex items-center justify-center bg-black rounded-lg p-2">
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={handlePlayPause}
+                    disabled={videoQueue.length === 0}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 p-3 rounded-full text-white transition-colors"
+                  >
+                    {isPlaying ? "⏸️" : "▶️"}
+                  </button>
+                  <button
+                    onClick={handleNextVideo}
+                    disabled={videoQueue.length <= 1}
+                    className="bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 p-2 rounded-full text-white transition-colors"
+                  >
+                    ⏭️
+                  </button>
+                  <button
+                    onClick={handleMuteToggle}
+                    className="bg-gray-700 hover:bg-gray-600 p-2 rounded-full text-white transition-colors"
+                  >
+                    {isMuted ? "🔇" : "🔊"}
+                  </button>
+                  <button
+                    onClick={handleOpenModalForCurrentVideo}
+                    disabled={videoQueue.length === 0}
+                    className="bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 p-2 rounded-full text-white transition-colors"
+                  >
+                    ➕
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Playlists Tab */}
+          {mobileActiveTab === "playlists" && (
+            <div className="h-full flex flex-col space-y-2">
+              {!isDetailOpen ? (
+                <div className="bg-black rounded-lg p-4 h-full overflow-hidden">
+                  <PlaylistSidebar
+                    playlists={playlists}
+                    isLoading={loadingPlaylists}
+                    onPlaylistSelect={handlePlaylistSelect}
+                    onPlayPlaylist={handlePlayPlaylist}
+                    selectedPlaylist={selectedPlaylist}
+                    toggleSidebar={toggleSidebar}
+                    isSidebarOpen={true}
+                    onShufflePlay={handleShufflePlayPlaylist}
+                    onDelete={handleDeletePlaylist}
+                  />
+                </div>
+              ) : (
+                <div className="bg-black rounded-lg p-4 h-full overflow-hidden">
+                  <PlaylistDetail
+                    playlist={selectedPlaylist}
+                    items={playlistItems}
+                    isLoading={isLoadingItems}
+                    onPlayFromPlaylist={handlePlayFromPlaylist}
+                    onAddToQueue={handleAddToQueue}
+                    onAddToPlaylist={handleOpenAddToPlaylistModal}
+                    onRemoveFromPlaylist={handleRemoveVideoFromPlaylist}
+                    onPlayNext={handlePlayNext}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Queue Tab */}
+          {mobileActiveTab === "queue" && (
+            <div className="h-full bg-black rounded-lg overflow-hidden">
+              <PlayerQueue
+                queue={videoQueue}
+                currentVideoIndex={currentVideoIndex}
+                onShuffle={handleShuffleQueue}
+                onPlayFromQueue={handlePlayFromQueue}
+                onDragEnd={handleDragEnd}
+                onClearQueue={handleClearQueue}
+              />
+            </div>
+          )}
+
+          {/* Chat Tab */}
+          {mobileActiveTab === "chat" && (
+            <div className="h-full bg-black rounded-lg p-4">
+              <ChatInterface
+                onPlayVideo={handlePlayVideoQueue}
+                onToggleHistory={toggleHistory}
+              />
+            </div>
           )}
         </div>
 
-        {/* Details Panel */}
-        {isDetailOpen && isSidebarOpen && selectedPlaylist && (
-          <div className="bg-black rounded-lg p-4 overflow-hidden w-full md:w-80 lg:w-80 transition-all duration-300 ease-in-out">
-            <PlaylistDetail
-              playlist={selectedPlaylist}
-              items={playlistItems}
-              isLoading={isLoadingItems}
-              onPlayFromPlaylist={handlePlayFromPlaylist}
-              onAddToQueue={handleAddToQueue}
-              onAddToPlaylist={handleOpenAddToPlaylistModal}
-              onRemoveFromPlaylist={handleRemoveVideoFromPlaylist}
-              onPlayNext={handlePlayNext}
-            />
+        {/* History Modal for Mobile */}
+        {isHistoryOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-black rounded-lg p-4 w-full h-5/6 overflow-hidden">
+              <ActionHistory onClose={toggleHistory} />
+            </div>
           </div>
         )}
       </div>
+    );
+  };
 
-      {/* RIGHT SIDE CONTAINER */}
-      <div className="flex-1 flex flex-col gap-4 h-full min-w-0">
-        {/* Top Section: Player + Controls */}
-        <div className="h-3/5 flex gap-2 min-h-0">
-          {/* Main Player */}
-          <div className="flex-1 bg-black rounded-lg min-w-0">
-            <YouTubePlayer
-              videoQueue={videoQueue}
-              currentVideoIndex={currentVideoIndex}
-              setCurrentVideoIndex={setCurrentVideoIndex}
-              isPlaying={isPlaying}
-              isMuted={isMuted}
-            />
+  // Desktop Layout (Original)
+  const DesktopLayout = () => {
+    return (
+      <div className="flex bg-gray-950 h-screen p-4 gap-4 relative">
+        {/* LEFT SIDE CONTAINER (Sidebar + Details) */}
+        <div
+          className={`flex-shrink-0 flex gap-1 transition-all duration-300 ease-in-out
+            ${!isSidebarOpen ? "w-0 md:w-16 lg:w-20" : ""}
+            ${isSidebarOpen && !isDetailOpen ? "w-full md:w-80 lg:w-80" : ""}
+            ${isSidebarOpen && isDetailOpen ? "w-full md:w-96 lg:w-[41rem]" : ""}
+          `}
+        >
+          {/* Sidebar Container */}
+          <div
+            className={`flex-shrink-0 bg-black rounded-lg p-2 overflow-hidden transition-all duration-300 ease-in-out
+            ${!isSidebarOpen ? "w-0 md:w-16 lg:w-20" : "w-full md:w-80 lg:w-80"}
+          `}
+          >
+            {(isSidebarOpen || window.innerWidth >= 768) && (
+              <PlaylistSidebar
+                playlists={playlists}
+                isLoading={loadingPlaylists}
+                onPlaylistSelect={handlePlaylistSelect}
+                onPlayPlaylist={handlePlayPlaylist}
+                selectedPlaylist={selectedPlaylist}
+                toggleSidebar={toggleSidebar}
+                isSidebarOpen={isSidebarOpen}
+                onShufflePlay={handleShufflePlayPlaylist}
+                onDelete={handleDeletePlaylist}
+              />
+            )}
           </div>
-          {/* Player Controls */}
-          <div className="w-16 md:w-20 flex-shrink-0">
-            <PlayerControls
-              isPlaying={isPlaying}
-              onPlayPause={handlePlayPause}
-              onNext={handleNextVideo}
-              isMuted={isMuted}
-              onMuteToggle={handleMuteToggle}
-              isQueueOpen={isQueueOpen}
-              onToggleQueue={toggleQueue}
-              onAddToPlaylist={handleOpenModalForCurrentVideo}
-            />
-          </div>
+
+          {/* Details Panel */}
+          {isDetailOpen && isSidebarOpen && selectedPlaylist && (
+            <div className="bg-black rounded-lg p-4 overflow-hidden w-full md:w-80 lg:w-80 transition-all duration-300 ease-in-out">
+              <PlaylistDetail
+                playlist={selectedPlaylist}
+                items={playlistItems}
+                isLoading={isLoadingItems}
+                onPlayFromPlaylist={handlePlayFromPlaylist}
+                onAddToQueue={handleAddToQueue}
+                onAddToPlaylist={handleOpenAddToPlaylistModal}
+                onRemoveFromPlaylist={handleRemoveVideoFromPlaylist}
+                onPlayNext={handlePlayNext}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Bottom Section: Chat + Queue */}
-        <div className="h-2/5 flex gap-2 min-h-0">
-          {/* Chat Interface */}
-          <div className="bg-black rounded-lg p-4 flex-1 min-w-0 transition-all duration-300 ease-in-out">
-            <ChatInterface
-              onPlayVideo={handlePlayVideoQueue}
-              onToggleHistory={toggleHistory}
-            />
+        {/* RIGHT SIDE CONTAINER */}
+        <div className="flex-1 flex flex-col gap-4 h-full min-w-0">
+          {/* Top Section: Player + Controls */}
+          <div className="h-3/5 flex gap-2 min-h-0">
+            {/* Main Player */}
+            <div className="flex-1 bg-black rounded-lg min-w-0">
+              <YouTubePlayer
+                videoQueue={videoQueue}
+                currentVideoIndex={currentVideoIndex}
+                setCurrentVideoIndex={setCurrentVideoIndex}
+                isPlaying={isPlaying}
+                isMuted={isMuted}
+              />
+            </div>
+            {/* Player Controls */}
+            <div className="w-16 md:w-20 flex-shrink-0">
+              <PlayerControls
+                isPlaying={isPlaying}
+                onPlayPause={handlePlayPause}
+                onNext={handleNextVideo}
+                isMuted={isMuted}
+                onMuteToggle={handleMuteToggle}
+                isQueueOpen={isQueueOpen}
+                onToggleQueue={toggleQueue}
+                onAddToPlaylist={handleOpenModalForCurrentVideo}
+              />
+            </div>
           </div>
-          {/* Player Queue */}
-          <div
-            className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              isQueueOpen ? "w-full md:w-1/3 lg:w-80 flex-shrink-0" : "w-0"
-            }`}
-          >
-            <PlayerQueue
-              queue={videoQueue}
-              currentVideoIndex={currentVideoIndex}
-              onShuffle={handleShuffleQueue}
-              onPlayFromQueue={handlePlayFromQueue}
-              onDragEnd={handleDragEnd}
-              onClearQueue={handleClearQueue}
-            />
+
+          {/* Bottom Section: Chat + Queue */}
+          <div className="h-2/5 flex gap-2 min-h-0">
+            {/* Chat Interface */}
+            <div className="bg-black rounded-lg p-4 flex-1 min-w-0 transition-all duration-300 ease-in-out">
+              <ChatInterface
+                onPlayVideo={handlePlayVideoQueue}
+                onToggleHistory={toggleHistory}
+              />
+            </div>
+            {/* Player Queue */}
+            <div
+              className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                isQueueOpen ? "w-full md:w-1/3 lg:w-80 flex-shrink-0" : "w-0"
+              }`}
+            >
+              <PlayerQueue
+                queue={videoQueue}
+                currentVideoIndex={currentVideoIndex}
+                onShuffle={handleShuffleQueue}
+                onPlayFromQueue={handlePlayFromQueue}
+                onDragEnd={handleDragEnd}
+                onClearQueue={handleClearQueue}
+              />
+            </div>
+            {isHistoryOpen && <ActionHistory onClose={toggleHistory} />}
           </div>
-          {isHistoryOpen && <ActionHistory onClose={toggleHistory} />}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <>
+      {/* Mobile Layout (sm screens and below) */}
+      <div className="block md:hidden">
+        <MobileLayout />
+      </div>
+
+      {/* Desktop Layout (md screens and above) */}
+      <div className="hidden md:block">
+        <DesktopLayout />
+      </div>
+
       {/* Render the modal conditionally */}
       {isModalOpen && (
         <PlaylistSelectionModal
@@ -569,7 +757,7 @@ const DashboardPage = () => {
           videoTitle={videoToMove?.title}
         />
       )}
-    </div>
+    </>
   );
 };
 
