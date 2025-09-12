@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { FaGoogle } from "react-icons/fa";
 import youtubroLogo from "../assets/youtuBro_logo_with_text.png";
-import youtuBro_action1 from "../assets/youtuBro_inaction_1.png"
-import youtuBro_action2 from "../assets/youtuBro_inaction_2.png"
+import youtuBro_action1 from "../assets/youtuBro_inaction_1.png";
+import youtuBro_action2 from "../assets/youtuBro_inaction_2.png";
 
 const FeatureSection = ({
   title,
@@ -147,7 +147,7 @@ const LoginPage = () => {
     <div className="relative w-screen min-h-screen bg-black text-white overflow-x-hidden">
       {/* Three.js Canvas Container - Fixed background */}
       <div ref={mountRef} className="fixed inset-0 z-0 opacity-80"></div>
-      {/* --- NEW: CSS Cursor Glow Element --- */}
+      {/* CSS Cursor Glow Element */}
       <div
         className="fixed z-40 w-32 h-32 rounded-full pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
         style={{
@@ -155,12 +155,11 @@ const LoginPage = () => {
           top: cursorPos.y,
           background:
             "radial-gradient(circle at center, rgba(239, 68, 68, 0.4) 0%, rgba(147, 51, 234, 0.2) 50%, transparent 100%)",
-          filter: "blur(30px)", // Soft blur
+          filter: "blur(30px)",
           transition:
-            "transform 0.1s ease-out, left 0.05s linear, top 0.05s linear", // Smooth movement
+            "transform 0.1s ease-out, left 0.05s linear, top 0.05s linear",
         }}
       ></div>
-      {/* --- END NEW --- */}
       {/* Login Button - Sharp Top Right */}
       <a
         href={loginUrl}
@@ -206,7 +205,6 @@ const LoginPage = () => {
         </div>
 
         {/* Feature Sections with alternating layout */}
-
         {/* Section 1 */}
         <div className="flex flex-col md:flex-row items-center gap-12 py-16 px-4">
           <div className="flex-1">
@@ -224,7 +222,6 @@ const LoginPage = () => {
           <div className="flex-1"></div>{" "}
           {/* Empty placeholder div for the image */}
         </div>
-
         {/* Section 2 */}
         <div className="flex flex-col md:flex-row-reverse items-center gap-12 py-16 px-4">
           <div className="flex-1">
@@ -242,7 +239,6 @@ const LoginPage = () => {
           <div className="flex-1"></div>{" "}
           {/* Empty placeholder div for the image */}
         </div>
-
         {/* Section 3 */}
         <div className="flex flex-col md:flex-row items-center gap-12 py-16 px-4">
           <div className="flex-1">
@@ -259,7 +255,6 @@ const LoginPage = () => {
           <div className="flex-1"></div>{" "}
           {/* Empty placeholder div for the image */}
         </div>
-
         {/* Section 4 */}
         <div className="flex flex-col md:flex-row-reverse items-center gap-12 py-16 px-4">
           <div className="flex-1">
@@ -294,6 +289,22 @@ const LoginPage = () => {
             Get Started with Google
           </a>
         </div>
+
+        {/* --- NEW: Footer/Privacy Policy Link Section --- */}
+        <div className="text-center mt-20 py-8 text-gray-500 text-sm">
+          <p>© {new Date().getFullYear()} YoutuBro. All rights reserved.</p>
+          <p className="mt-2">
+            <a
+              href="/privacy-policy.html" // Path to your static HTML file in the public folder
+              target="_blank" // Opens in a new tab
+              rel="noopener noreferrer" // Recommended for security with target="_blank"
+              className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+            >
+              Privacy Policy
+            </a>
+          </p>
+        </div>
+        {/* --- END NEW --- */}
       </div>
     </div>
   );
