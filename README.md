@@ -4,7 +4,7 @@
 
 # YoutuBro
 
-YoutuBro is an intelligent, AI-powered assistant designed to streamline your YouTube experience. It allows users to create, manage, and interact with playlists and videos using natural language commands through a conversational interface. By integrating directly with a user's YouTube account, it provides a seamless and personalized media management and playback environment.
+YoutuBro is an intelligent YouTube assistant powered by a custom **MCP (Model Context Protocol)** server. This server manages the conversational context and orchestrates AI model interactions, enabling users to create, manage, and interact with playlists and videos using natural language commands through a conversational interface. By integrating directly with a user's YouTube account, it provides a seamless and personalized media management and playback environment.
 
 ## Key Features
 
@@ -38,7 +38,7 @@ YoutuBro is an intelligent, AI-powered assistant designed to streamline your You
 
 The application is built on a decoupled architecture with a static frontend and a stateless backend API.
 1.  The **React frontend** handles all user interface elements and client-side state management.
-2.  The **Node.js/Express backend** serves as the core logic engine. It authenticates users, securely stores tokens, and interfaces with all external APIs.
+2.  The **Node.js/Express backend** serves as the **MCP (Model Context Protocol) server**. Its primary role is to manage conversational context, process user prompts through AI models, and translate these into executable commands. While not all formal aspects of an ideal MCP implementation are present, the core principles of context management and AI orchestration are central to its operation.
 3.  An **AI-driven command pipeline** classifies the user's intent, extracts relevant parameters, and synthesizes the necessary actions or search queries.
 4.  **Redis** is used as a caching layer to reduce latency and minimize YouTube API quota usage for frequently accessed data like playlists.
 
