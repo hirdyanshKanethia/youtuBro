@@ -1,36 +1,55 @@
 // THIS FILE CONTAINS METHODS EXCLUSIVE TO BUILDING A PLAYLIST
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/genai");
 
 class PlaylistBuilder {
   constructor(geminiApiKey, youtubeService) {
-    this.genAI = new GoogleGenerativeAI(geminiApiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    this.ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    this.modelName = "gemini-2.0-flash-001";
     this.youtubeService = youtubeService;
   }
 
+  // **************************************************************************************
+  // Helper function to call Gemini model and return parsed JSON
+  // **************************************************************************************
   async _callModel(prompt) {
     let responseText;
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      responseText = response.text();
+      const result = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json", // Helps model output structured JSON
+        },
+      });
 
-      console.log("Raw response: ", responseText);
+      // New @google/genai API uses .text directly
+      responseText = result.text;
 
-      const jsonMatch = responseText.match(/\{[\s\S]*\}|"[^"]*"/);
+      // Match JSON or quoted string fallback
+      const jsonMatch = responseText.match(/\{[\s\S]*\}|"(?:[^"\\]|\\.)*"/);
       if (!jsonMatch) {
-        throw new Error("No JSON object found in the model's response.");
+        throw new Error(
+          "No JSON object or string found in the model response."
+        );
       }
 
-      const cleanedJson = jsonMatch[0].replace(/```json\n|\n```/g, "").trim();
-      return JSON.parse(cleanedJson);
+      // Clean up code block markers if any
+      const cleanedJson = jsonMatch[0].replace(/```json\n?|\n?```/g, "").trim();
+
+      // Try parsing the JSON — fallback to returning a raw string if parsing fails
+      try {
+        return JSON.parse(cleanedJson);
+      } catch {
+        return cleanedJson.replace(/^"|"$/g, ""); // remove quotes if it’s a plain string
+      }
     } catch (error) {
       console.error("Failed to parse JSON. Raw model output:", responseText);
       console.error("Model call failed:", error);
       throw error;
     }
   }
+
   /**
    * Main execute method that acts as a dispatcher based on the 'need_roadmap' parameter.
    */
@@ -290,7 +309,9 @@ class PlaylistBuilder {
 
       **Your Turn:**
 
-      **Input:** { "topic": "${topic || "not specified"}", "creator": "${creator || "not specified"}", "genre": "${genre || "not specified"}" }
+      **Input:** { "topic": "${topic || "not specified"}", "creator": "${
+      creator || "not specified"
+    }", "genre": "${genre || "not specified"}" }
       **Output:**
     `;
 

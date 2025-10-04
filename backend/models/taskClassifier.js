@@ -1,16 +1,16 @@
 // FIRST MODEL TO PROCESS ON THE USER PROMPT AND CLASSIFY IT AS EITHER OF THE AVAILABLE OPERATIONS
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/genai");
 
 class TaskClassifier {
   constructor(geminiApiKey) {
-    this.genAI = new GoogleGenerativeAI(geminiApiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    this.ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    this.modelName = "gemini-2.0-flash-001";
   }
 
   async classifyTask(userPrompt) {
     const classificationPrompt = `
-You are a task classifier for a YouTube assistant app. 
+You are a task classifier for a YouTube assistant app.
 Analyze the user's message and classify it into one of these 4 categories:
 
 1. "make_playlist" - User wants to create a new playlist.
@@ -29,19 +29,23 @@ Respond ONLY with a JSON object in this exact format:
 `;
 
     try {
-      const result = await this.model.generateContent(classificationPrompt);
-      const response = await result.response;
-      let text = response.text();
+      const result = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: classificationPrompt,
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      });
+
+      // `response.text` is a property (not a function)
+      const text = result.text;
 
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
-      }
+      if (!jsonMatch) throw new Error("No JSON found in response from LLM");
 
       const classification = JSON.parse(jsonMatch[0]);
-      if (!this.isValidClassification(classification)) {
+      if (!this.isValidClassification(classification))
         throw new Error("Invalid classification response from model");
-      }
 
       return classification;
     } catch (error) {

@@ -1,28 +1,35 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/genai");
 
 class ActionHandlers {
   constructor(geminiApiKey, youtubeService) {
-    this.genAI = new GoogleGenerativeAI(geminiApiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    this.ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    this.modelName = "gemini-2.0-flash-001";
     this.youtubeService = youtubeService;
   }
 
   // **************************************************************************************
-  // Single helper function to call ai model with the provided prompt and return cleaned json
+  // Single helper function to call the AI model with the provided prompt and return cleaned JSON
   // **************************************************************************************
   async _callModel(prompt) {
     let responseText;
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      responseText = response.text();
+      const result = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json", // Forces model to reply with JSON
+        },
+      });
 
+      // In @google/genai, .text is the final output string
+      responseText = result.text;
+
+      // Try to extract valid JSON
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      if (!jsonMatch)
         throw new Error("No JSON object found in the model's response.");
-      }
 
-      const cleanedJson = jsonMatch[0].replace(/```json\n|\n```/g, "").trim();
+      const cleanedJson = jsonMatch[0].replace(/```json\n?|\n?```/g, "").trim();
       return JSON.parse(cleanedJson);
     } catch (error) {
       console.error("Failed to parse JSON. Raw model output:", responseText);
