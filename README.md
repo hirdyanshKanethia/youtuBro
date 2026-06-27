@@ -41,39 +41,3 @@ The application is built on a decoupled architecture with a static frontend and 
 2.  The **Node.js/Express backend** serves as the **MCP (Model Context Protocol) server**. Its primary role is to manage conversational context, process user prompts through AI models, and translate these into executable commands. While not all formal aspects of an ideal MCP implementation are present, the core principles of context management and AI orchestration are central to its operation.
 3.  An **AI-driven command pipeline** classifies the user's intent, extracts relevant parameters, and synthesizes the necessary actions or search queries.
 4.  **Redis** is used as a caching layer to reduce latency and minimize YouTube API quota usage for frequently accessed data like playlists.
-
-## Getting Started
-
-### Prerequisites
-
-* Node.js and npm
-* A Google Cloud Platform project with the YouTube Data API v3 enabled and OAuth 2.0 credentials (Client ID, Client Secret).
-* A Supabase project for the PostgreSQL database.
-* A Redis instance (e.g., from Upstash).
-
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    ```
-
-2.  **Backend Setup:**
-    ```bash
-    cd backend
-    npm install
-    ```
-    Create a `.env` file and populate it with your API keys and database credentials (e.g., `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `SUPABASE_URL`, `REDIS_URL`, etc.).
-    ```bash
-    npm start
-    ```
-
-3.  **Frontend Setup:**
-    ```bash
-    cd frontend
-    npm install
-    ```
-    Create a `.env` file and add `VITE_API_URL=http://localhost:3000`.
-    ```bash
-    npm run dev
-    ```
