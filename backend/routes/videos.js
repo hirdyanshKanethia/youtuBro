@@ -2,7 +2,7 @@ const express = require("express");
 const { google } = require("googleapis");
 const authMiddleware = require("../middleware/auth");
 const YouTubeService = require("../services/youtubeService");
-const supabase = require("../services/supabase");
+const prisma = require("../services/prisma");
 
 const router = express.Router();
 
@@ -15,8 +15,8 @@ router.get("/details", authMiddleware, async (req, res) => {
     }
     const videoIds = ids.split(',');
 
-    const { data: tokens, error } = await supabase.from("tokens").select("access_token, refresh_token").eq("id", userId).single();
-    if (error || !tokens) return res.status(401).json({ error: "Could not retrieve user tokens." });
+    const tokens = await prisma.token.findUnique({ where: { id: userId }, select: { access_token: true, refresh_token: true } });
+    if (!tokens) return res.status(401).json({ error: "Could not retrieve user tokens." });
     
     const oAuth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
     oAuth2Client.setCredentials(tokens);

@@ -1,7 +1,7 @@
 // FILE TO HANDLE OAuth RELATED OPERATIONS
 
 const { google } = require("googleapis");
-const supabase = require("./supabase");
+const prisma = require("./prisma");
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
@@ -23,34 +23,37 @@ async function saveTokens(userId, tokens) {
   const { access_token, refresh_token, scope, token_type, expiry_date } =
     tokens;
 
-  const { data, error } = await supabase.from("tokens").upsert(
-    {
+  const data = await prisma.token.upsert({
+    where: { user_id: userId },
+    update: {
+      access_token,
+      refresh_token,
+      scope,
+      token_type,
+      expiry_date: expiry_date ? BigInt(expiry_date) : null,
+    },
+    create: {
       user_id: userId,
       access_token,
       refresh_token,
       scope,
       token_type,
-      expiry_date,
-    },
-    { onConflict: "user_id" }
-  ); 
-
-  if (error) {
-    console.error("Error saving tokens:");
-    throw error;
-  }
+      expiry_date: expiry_date ? BigInt(expiry_date) : null,
+    }
+  });
 
   return data;
 }
 
 async function loadTokens(userId) {
-  const { data, error } = await supabase
-    .from("tokens")
-    .select("*")
-    .eq("user_id", userId)
-    .single();
+  const data = await prisma.token.findUnique({
+    where: { user_id: userId }
+  });
 
-  if (error) throw error;
+  if (!data) throw new Error("Token not found");
+  if (data.expiry_date) {
+    data.expiry_date = Number(data.expiry_date);
+  }
   return data;
 }
 

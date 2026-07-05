@@ -1,4 +1,4 @@
-const supabase = require('../services/supabase'); 
+const prisma = require('../services/prisma'); 
 
 /**
  * Logs a successful agent action to the database.
@@ -12,16 +12,12 @@ async function logActionToDB(userId, message) {
   }
 
   try {
-    const { error } = await supabase
-      .from('actions')
-      .insert({
+    await prisma.action.create({
+      data: {
         user_id: userId,
         message: message,
-      });
-
-    if (error) {
-      throw error;
-    }
+      }
+    });
 
     console.log(`[DB Logger] Successfully logged action for user: ${userId}`);
   } catch (error) {

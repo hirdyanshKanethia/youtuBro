@@ -1,6 +1,6 @@
 const express = require("express");
 const { getUserInfo, oauth2Client, saveTokens } = require("../services/google");
-const supabase = require("../services/supabase");
+const prisma = require("../services/prisma");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/auth");
 
@@ -33,35 +33,24 @@ router.get("/oauth2callback", async (req, res) => {
 
     const userInfo = await getUserInfo(oauth2Client);
 
-    const { error } = await supabase.from("tokens").upsert(
-      {
+    const userRecord = await prisma.token.upsert({
+      where: { user_id: userInfo.email },
+      update: {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        scope: tokens.scope,
+        token_type: tokens.token_type,
+        expiry_date: tokens.expiry_date ? BigInt(tokens.expiry_date) : null,
+      },
+      create: {
         user_id: userInfo.email,
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         scope: tokens.scope,
         token_type: tokens.token_type,
-        expiry_date: tokens.expiry_date,
-      },
-      { onConflict: "user_id", returning: "minimal" }
-    );
-
-    if (error) {
-      console.error("Supabase error:", error);
-      return res.status(500).send("Failed to save tokens");
-    }
-
-    const { data: userRecord, error: selectError } = await supabase
-      .from("tokens")
-      .select("id")
-      .eq("user_id", userInfo.email)
-      .single();
-
-    if (selectError || !userRecord) {
-      console.error("Supabase select error:", selectError);
-      return res
-        .status(500)
-        .send("Failed to retrieve user record after login.");
-    }
+        expiry_date: tokens.expiry_date ? BigInt(tokens.expiry_date) : null,
+      }
+    });
 
     const jwtToken = jwt.sign(
       {

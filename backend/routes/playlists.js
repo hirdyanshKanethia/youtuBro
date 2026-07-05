@@ -2,7 +2,7 @@
 
 const express = require("express");
 const { google } = require("googleapis");
-const supabase = require("../services/supabase");
+const prisma = require("../services/prisma");
 const authMiddleware = require("../middleware/auth");
 const YouTubeService = require("../services/youtubeService");
 const redisClient = require("../services/redis");
@@ -20,14 +20,13 @@ router.get("/", authMiddleware, async (req, res) => {
       return res.json({ success: true, playlists: JSON.parse(cachedData) });
     }
 
-    const { data: tokens, error } = await supabase
-      .from("tokens")
-      .select("access_token, refresh_token")
-      .eq("id", userId)
-      .single();
+    const tokens = await prisma.token.findUnique({
+      where: { id: userId },
+      select: { access_token: true, refresh_token: true }
+    });
 
-    if (error || !tokens) {
-      console.error("Supabase error (playlists.js):", error);
+    if (!tokens) {
+      console.error("Token error (playlists.js): User not found");
       return res.status(401).json({ error: "Could not retrieve user tokens." });
     }
 
@@ -67,12 +66,8 @@ router.get("/:playlistId/items", authMiddleware, async (req, res) => {
       return res.json({ success: true, videoIds: JSON.parse(cachedData) });
     }
 
-    const { data: tokens, error } = await supabase
-      .from("tokens")
-      .select("...")
-      .eq("id", userId)
-      .single();
-    if (error || !tokens)
+    const tokens = await prisma.token.findUnique({ where: { id: userId } });
+    if (!tokens)
       return res.status(401).json({ error: "Could not retrieve user tokens." });
 
     const oAuth2Client = new google.auth.OAuth2(

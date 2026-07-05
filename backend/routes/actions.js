@@ -1,5 +1,5 @@
 const express = require("express");
-const supabase = require("../services/supabase");
+const prisma = require("../services/prisma");
 const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
@@ -9,16 +9,12 @@ router.get("/", authMiddleware, async (req, res) => {
   try {
     const { id: userId } = req.user;
 
-    const { data: actions, error } = await supabase
-      .from("actions")
-      .select("message, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    if (error) {
-      throw error;
-    }
+    const actions = await prisma.action.findMany({
+      where: { user_id: userId },
+      select: { message: true, created_at: true },
+      orderBy: { created_at: 'desc' },
+      take: 10,
+    });
 
     res.json({ success: true, actions: actions });
   } catch (error) {
