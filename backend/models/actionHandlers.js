@@ -5,7 +5,7 @@ class ActionHandlers {
     // this.ai = new GoogleGenAI({ apiKey: geminiApiKey });
     // this.modelName = "gemini-2.0-flash-001";
     this.apiKey = geminiApiKey; // Reusing param for OpenRouter key
-    this.modelName = "google/gemini-2.0-pro-exp-02-05:free";
+    this.modelName = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-lite-preview-02-05:free";
     this.youtubeService = youtubeService;
   }
 
