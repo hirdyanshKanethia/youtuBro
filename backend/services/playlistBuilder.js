@@ -4,8 +4,10 @@ const { GoogleGenAI } = require("@google/genai");
 
 class PlaylistBuilder {
   constructor(geminiApiKey, youtubeService) {
-    this.ai = new GoogleGenAI({ apiKey: geminiApiKey });
-    this.modelName = "gemini-2.0-flash-001";
+    // this.ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    // this.modelName = "gemini-2.0-flash-001";
+    this.apiKey = geminiApiKey; // Reusing param for OpenRouter key
+    this.modelName = "google/gemini-2.0-flash:free";
     this.youtubeService = youtubeService;
   }
 
@@ -15,6 +17,7 @@ class PlaylistBuilder {
   async _callModel(prompt) {
     let responseText;
     try {
+      /*
       const result = await this.ai.models.generateContent({
         model: this.modelName,
         contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -25,6 +28,22 @@ class PlaylistBuilder {
 
       // New @google/genai API uses .text directly
       responseText = result.text;
+      */
+
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.modelName,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(JSON.stringify(data));
+      responseText = data.choices[0].message.content;
 
       // Match JSON or quoted string fallback
       const jsonMatch = responseText.match(/\{[\s\S]*\}|"(?:[^"\\]|\\.)*"/);

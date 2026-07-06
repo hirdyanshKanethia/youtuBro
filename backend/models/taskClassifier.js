@@ -4,8 +4,10 @@ const { GoogleGenAI } = require("@google/genai");
 
 class TaskClassifier {
   constructor(geminiApiKey) {
-    this.ai = new GoogleGenAI({ apiKey: geminiApiKey });
-    this.modelName = "gemini-2.0-flash-001";
+    // this.ai = new GoogleGenAI({ apiKey: geminiApiKey });
+    // this.modelName = "gemini-2.0-flash-001";
+    this.apiKey = geminiApiKey; // Reusing param for OpenRouter key
+    this.modelName = "google/gemini-2.0-flash:free";
   }
 
   async classifyTask(userPrompt) {
@@ -29,6 +31,7 @@ Respond ONLY with a JSON object in this exact format:
 `;
 
     try {
+      /*
       const result = await this.ai.models.generateContent({
         model: this.modelName,
         contents: classificationPrompt,
@@ -39,6 +42,23 @@ Respond ONLY with a JSON object in this exact format:
 
       // `response.text` is a property (not a function)
       const text = result.text;
+      */
+
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.modelName,
+          messages: [{ role: "user", content: classificationPrompt }]
+        })
+      });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(JSON.stringify(data));
+      const text = data.choices[0].message.content;
 
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON found in response from LLM");
