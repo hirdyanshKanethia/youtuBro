@@ -7,8 +7,9 @@ async function run() {
   
   try {
     console.log("Pinging Supabase (Postgres)...");
-    await prisma.$queryRaw`SELECT 1`;
-    console.log("✅ Supabase ping successful.");
+    // Querying an actual table ensures Supabase registers this as project activity
+    const count = await prisma.tokens.count();
+    console.log(`✅ Supabase ping successful. (Tokens count: ${count})`);
   } catch (err) {
     console.error("❌ Supabase ping failed:", err.message);
     hasError = true;
